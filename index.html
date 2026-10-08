@@ -241,6 +241,8 @@ table.raw td:first-child{color:var(--mute)}
     <div class="tab" id="tSet">
       <h3>Ceas</h3>
       <div class="note">Offsetul se adaugă la ora GPS. Pune time.is pe alt telefon lângă aplicație și ajustează până când secunda se schimbă odată.</div>
+      <div class="row2"><span class="num" id="setClock" style="font-size:clamp(34px,13vh,64px);font-weight:800;background:var(--edit);color:var(--edit-ink);padding:0 10px;border-radius:8px">--:--:--.-</span>
+        <span class="note" id="setClockRaw"></span></div>
       <div class="row2"><button class="s" data-off="-1000">−1 s</button><button class="s" data-off="-100">−0,1 s</button>
         <span class="big2 num" id="offTxt">+0,0 s</span>
         <button class="s" data-off="100">+0,1 s</button><button class="s" data-off="1000">+1 s</button><button class="s" data-off="0">0</button></div>
@@ -264,7 +266,7 @@ table.raw td:first-child{color:var(--mute)}
 <div id="rotate">Rotește telefonul în poziție orizontală.</div>
 <script>
 'use strict';
-const VERSION = '0.6.0';
+const VERSION = '0.6.1';
 
 /* ================= protocol (specificații v1.3, secțiunea 10) ================= */
 const UUID = {
@@ -922,6 +924,12 @@ function renderPanel(t){
   }
   if (on('tSet')){
     $('offTxt').textContent = fmtOff(S.set.clockOffset);
+    if (t === null){ $('setClock').textContent = '--:--:--.-'; $('setClockRaw').textContent = 'fără sursă de timp: alege una din ☰ → Sursă'; }
+    else {
+      $('setClock').textContent = fmtClock(App.local(t), true).slice(0, -2);
+      const raw = modDay(t - new Date().getTimezoneOffset()*60000);
+      $('setClockRaw').textContent = 'ora aplicației (cu offset) · fără offset: ' + fmtClock(raw, true).slice(0, -2) + ' · sursa: ' + (S.src ? S.src.label : '—');
+    }
     $('clkKey').textContent = S.learnKey ? 'apasă clickerul…' : (S.set.clickKey || 'neînvățată');
   }
 }

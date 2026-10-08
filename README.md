@@ -1,11 +1,11 @@
-# TSD Rally – aplicația (versiunea 0.6.0, pasul 6)
+# TSD Rally – aplicația (versiunea 0.6.1, pasul 6)
 
 Conținut: `index.html`, `manifest.webmanifest`, `sw.js`, `icon-192.png`, `icon-512.png`.
 
 ## Actualizare
 
 Încarci cele 5 fișiere peste cele vechi pe GitHub (**Add file → Upload files**, aceleași nume), apoi **Commit changes**.
-Pe telefon, cu internet, deschizi aplicația de două ori. În **☰ → Setări → Despre** trebuie să scrie **0.6.0**.
+Pe telefon, cu internet, deschizi aplicația de două ori. În **☰ → Setări → Despre** trebuie să scrie **0.6.1**.
 
 (Prima publicare, dacă e cazul: depozit public `tsd-app`, încarci fișierele, apoi **Settings → Pages → Deploy from a branch → main → / (root) → Save**.
 Adresa: `https://NUMELE-TĂU.github.io/tsd-app/`. Pe telefon: Chrome → **⋮ → Adaugă pe ecranul de pornire**.)
@@ -18,7 +18,7 @@ Adresa: `https://NUMELE-TĂU.github.io/tsd-app/`. Pe telefon: Chrome → **⋮ �
 - **Loguri**: ☰ → Loguri. Un log începe la START și se închide la RESET. „Evenimente” și „Continuu” se salvează ca CSV (în Descărcări); butonul ⇪ le trimite direct (e-mail, WhatsApp etc.). CSV-ul folosește „;” și virgulă zecimală, pentru Excel în română.
 - **Autostart**: ☰ → Probă. Cu cutia îl face cutia; doar cu telefonul îl face aplicația, pe ceasul telefonului.
 - **Calibrare**: ☰ → Probă. „Început” la reperul de start al tronsonului, „Sfârșit” la reperul final, introduci distanța oficială în km, apoi **Aplică k** (doar înainte de START).
-- **Ceas**: ☰ → Setări. Offset în pași de 0,1 s și 1 s, aliniat cu time.is.
+- **Ceas**: ☰ → Setări. Ora aplicației apare mare, cu zecimi, chiar acolo; offset în pași de 0,1 s și 1 s, aliniat cu time.is.
 - **Clicker Bluetooth**: ☰ → Setări → **Învață tasta**, apoi apeși butonul clickerului. De atunci acea tastă dă START/RESTART; celelalte sunt ignorate.
 - **START mai precis**: momentul apăsării e cel în care atingi ecranul, nu cel în care ridici degetul.
 
