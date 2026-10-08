@@ -39,9 +39,9 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
 #main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-width:0;gap:clamp(8px,2vw,24px);padding-top:clamp(4px,1.5vh,10px);min-height:0}
 .col{display:flex;flex-direction:column;min-height:0;min-width:0;gap:clamp(4px,1.4vh,10px)}
 .row{display:flex;align-items:baseline;gap:8px}
-.lbl{color:var(--mute);font-size:clamp(11px,3.6vh,19px);min-width:3.7em}
-.val{font-weight:700;font-size:clamp(18px,7.6vh,46px);line-height:1.05}
-.val.md{font-size:clamp(16px,6.2vh,36px)}
+.lbl{color:var(--mute);font-size:clamp(11px,3.9vh,20px);min-width:3.6em}
+.val{font-weight:700;font-size:clamp(20px,9.6vh,60px);line-height:1.0}
+.val.md{font-size:clamp(18px,7.8vh,48px)}
 .pair{display:grid;grid-template-columns:auto 1fr auto 1fr;column-gap:8px;row-gap:clamp(2px,1vh,8px);align-items:baseline}
 .unit{color:var(--mute);font-size:clamp(9px,2.6vh,13px)}
 .spacer{flex:1}
@@ -52,16 +52,17 @@ button.b{border:1.5px solid var(--ink);background:var(--btn);color:var(--btn-ink
   font-size:clamp(13px,4.2vh,22px);font-weight:600;padding:0;touch-action:manipulation}
 button.b:active{transform:scale(.97);filter:brightness(.92)}
 button.b.soon{opacity:.45}
+button.b.active{background:var(--late);color:#fff;border-color:var(--late)}
 #startBtn{grid-row:1 / span 2;grid-column:3;background:var(--start);border:2.5px solid var(--start-line);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
 #startBtn .big{font-size:clamp(16px,5.6vh,30px);font-weight:800;letter-spacing:.02em}
 #startBtn .sub{font-size:clamp(10px,3vh,15px);color:var(--mute);font-weight:600}
 
 /* deviation bar */
-#devbar{position:relative;border:1.5px solid var(--ink);border-radius:8px;height:clamp(50px,19vh,110px);overflow:hidden}
+#devbar{position:relative;border:1.5px solid var(--ink);border-radius:8px;height:clamp(48px,17vh,104px);overflow:hidden}
 #devMarker{position:absolute;left:50%;top:8%;bottom:8%;width:5px;margin-left:-2.5px;background:var(--ink)}
-#devFill{position:absolute;top:18%;bottom:18%;width:0}
-#devText{position:absolute;top:50%;transform:translateY(-50%);font-weight:800;font-size:clamp(20px,9vh,52px)}
+#devFill{position:absolute;bottom:9%;height:20%;width:0;border-radius:3px}
+#devText{position:absolute;top:40%;transform:translateY(-50%);z-index:1;font-weight:800;font-size:clamp(20px,10vh,60px)}
 #devHint{display:flex;justify-content:space-between;font-size:clamp(9px,2.6vh,13px);margin-top:-2px}
 #devHint .l{color:var(--late)} #devHint .r{color:var(--early)}
 .vimp{display:inline-block;background:var(--edit);color:var(--edit-ink);border-radius:6px;padding:0 8px;
@@ -94,6 +95,12 @@ table.raw td:first-child{color:var(--mute)}
   background:var(--panel);padding:6px;border-radius:6px}
 
 /* toast + rotate */
+#numDlg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:25;align-items:center;justify-content:center}
+#numDlg.open{display:flex}
+#numDlg .box{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:14px 18px;display:grid;gap:10px;font-size:16px}
+#numDlg input{font-size:28px;padding:6px 10px;width:7em;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink)}
+#numDlg button.s{border:1px solid var(--ink);background:var(--btn);color:var(--btn-ink);border-radius:8px;padding:8px 16px;font-size:16px;margin-right:8px}
+#numDlg button.s.primary{background:var(--ink);color:var(--bg)}
 #toast{position:fixed;left:50%;bottom:6vh;transform:translateX(-50%);background:var(--ink);color:var(--bg);
   padding:8px 14px;border-radius:8px;font-size:15px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:30}
 #toast.on{opacity:.95}
@@ -128,10 +135,10 @@ table.raw td:first-child{color:var(--mute)}
       <div class="spacer"></div>
       <div class="btns">
         <button class="b" id="resetBtn">RESET</button>
-        <button class="b soon" id="m10Btn">−10 m</button>
+        <button class="b" id="m10Btn">−10 m</button>
         <button class="b" id="startBtn"><span class="big" id="startTxt">START</span><span class="sub" id="startSub">RESTART</span></button>
-        <button class="b soon" id="backBtn">BACK</button>
-        <button class="b soon" id="p10Btn">+10 m</button>
+        <button class="b" id="backBtn">BACK</button>
+        <button class="b" id="p10Btn">+10 m</button>
       </div>
     </div>
 
@@ -146,8 +153,8 @@ table.raw td:first-child{color:var(--mute)}
       <div class="row"><span class="lbl">D_dev</span><span class="val md num" id="dDev">—</span><span class="unit">km</span></div>
       <div class="spacer"></div>
       <div class="btns2">
-        <button class="b soon" id="modeBtn">Abatere: PROBĂ</button>
-        <button class="b soon" id="kBtn">k = 1.0000</button>
+        <button class="b" id="modeBtn">Abatere: PROBĂ</button>
+        <button class="b" id="kBtn">k = 1.0000</button>
       </div>
     </div>
   </div>
@@ -203,17 +210,20 @@ table.raw td:first-child{color:var(--mute)}
       <button class="s" id="fsBtn">Ecran complet</button>
       <h3>Despre</h3>
       <p>TSD Rally · versiunea <b id="ver"></b> · protocol 1</p>
-      <p class="note">Pasul 4: conexiune, date brute, simulator. Calculele de probă (abateri, segmente, BACK, ±10 m, k) vin la pasul 5.
-        T_gen, D_gen și mediile de mai sus sunt deja reale, cu k = 1.</p>
+      <p class="note">Pasul 5: logica probei (segmente, V_imp retroactiv, BACK, ±10 m, k, abatere pe probă sau pe segment).
+        Abaterea: plus = întârziere, minus = avans. Loguri, GPS-ul telefonului și salvarea probei la repornire vin la pasul 6.</p>
     </div>
   </div>
 </div>
+<div id="numDlg"><div class="box"><div id="numTitle"></div>
+  <input id="numInput" class="num" inputmode="decimal" autocomplete="off">
+  <div><button class="s" id="numCancel">Renunță</button><button class="s primary" id="numOk">OK</button></div></div></div>
 <div id="toast"></div>
 <div id="rotate">Rotește telefonul în poziție orizontală.</div>
 
 <script>
 'use strict';
-const VERSION = '0.4.0';
+const VERSION = '0.5.0';
 
 /* ================= protocol (specificații v1.3, secțiunea 10) ================= */
 const UUID = {
@@ -374,6 +384,75 @@ class SimSource {
   }
 }
 
+/* ================= motorul probei (specificații v1.3, secțiunile 5 și 9.3) ================= */
+// Funcții pure: starea probei e o listă de evenimente; toate valorile se recalculează din ea.
+// Unități: t în ms (timp continuu UTC), odo în mm (odometru continuu necalibrat), v în km/h.
+// Semn: plus = întârziere (timp în plus față de ideal), minus = avans.
+const Engine = {
+  create(k, vimp){ return { running:false, k: k || 1, vimp0: vimp || null, segs:[], corr:[], back:[], backOpen:null, mode:'PROBA' }; },
+
+  start(st, t, odo){ st.running = true; st.segs = [{ t, odo, v: st.vimp0 }]; st.corr = []; st.back = []; st.backOpen = null; },
+
+  // RESTART: segmentul nou pornește din (t, odo); se inserează în ordinea timpului (evenimentele recuperate prin REPLAY pot veni târziu)
+  restart(st, t, odo){
+    if (!st.running || t < st.segs[0].t) return false;
+    if (st.segs.some(s => s.t === t)) return false;
+    let i = st.segs.length; while (i > 0 && st.segs[i-1].t > t) i--;
+    st.segs.splice(i, 0, { t, odo, v: st.segs[i-1].v });     // moștenește viteza segmentului anterior
+    return true;
+  },
+
+  // V_imp se aplică retroactiv segmentului curent (de la ultimul RESTART); înainte de START devine viteza primului segment
+  setV(st, v){ if (st.running) st.segs[st.segs.length-1].v = v; else st.vimp0 = v; },
+  curV(st){ return st.running ? st.segs[st.segs.length-1].v : st.vimp0; },
+
+  correct(st, t, mm){ if (st.running) st.corr.push({ t, mm }); },
+
+  // BACK: prima apăsare deschide intervalul, a doua îl închide; în interval distanța scade
+  toggleBack(st, odo){
+    if (!st.running) return null;
+    if (st.backOpen === null){ st.backOpen = odo; return true; }
+    if (odo > st.backOpen) st.back.push([st.backOpen, odo]);
+    st.backOpen = null; return false;
+  },
+  backLen(st, odo){
+    let s = 0;
+    for (const [a, b] of st.back) s += Math.max(0, Math.min(odo, b) - a);
+    if (st.backOpen !== null) s += Math.max(0, odo - st.backOpen);
+    return s;
+  },
+
+  // distanța probei (mm) la odometrul odo și momentul t: D = k × Σ(±Δodo) + Σ corecții
+  D(st, odo, t){
+    const o0 = st.segs[0].odo;
+    let c = 0; for (const x of st.corr) if (x.t <= t) c += x.mm;
+    return st.k * (odo - o0 - 2 * Engine.backLen(st, odo)) + c;
+  },
+
+  compute(st, t, odo){
+    if (!st.running) return null;
+    const segs = st.segs, n = segs.length, last = segs[n-1];
+    const dGen = Engine.D(st, odo, t), dSeg0 = Engine.D(st, last.odo, last.t);
+    const dInt = dGen - dSeg0, tGen = t - segs[0].t, tInt = t - last.t;
+    // timp ideal (s): Σ 3,6 × d_i / v_i pe segmentele închise + segmentul curent
+    let idealClosed = 0, ok = true;
+    for (let i = 0; i < n - 1; i++){
+      const d = Engine.D(st, segs[i+1].odo, segs[i+1].t) - Engine.D(st, segs[i].odo, segs[i].t);
+      if (!(segs[i].v > 0)){ ok = false; break; }
+      idealClosed += 3.6 * (d / 1000) / segs[i].v;
+    }
+    const v = last.v;
+    let tDev = null, dDev = null;
+    if (v > 0){
+      const idealInt = 3.6 * (dInt / 1000) / v;
+      if (st.mode === 'SEGMENT') tDev = tInt / 1000 - idealInt;
+      else if (ok) tDev = tGen / 1000 - (idealClosed + idealInt);
+      if (tDev !== null) dDev = tDev * v / 3.6 * 1000;          // mm, același semn: plus = metri de recuperat
+    }
+    return { tGen, tInt, dGen, dInt, tDev, dDev, v, seg: n, back: st.backOpen !== null };
+  },
+};
+
 /* ================= starea aplicației ================= */
 const S = {
   src:null, last:null, lastAt:0, t:null,
@@ -383,7 +462,7 @@ const S = {
   lastEvSeq:null, seenEv:new Set(), replayAt:0, replayTries:0,
   info:'', evlog:[], clockOffset:0,
   autostartT:null,                         // timp continuu (ms) programat
-  stage:{ running:false, start:null, seg:null, restarts:0 },
+  stage: Engine.create(1, null),
 };
 const $ = id => document.getElementById(id);
 
@@ -462,8 +541,9 @@ const App = {
 
   press(t, odo, how){
     const st = S.stage;
-    if (!st.running){ st.running = true; st.start = { t, odo }; st.seg = { t, odo }; st.restarts = 0; this.toast('START (' + how + ')'); }
-    else { st.seg = { t, odo }; st.restarts++; this.toast('RESTART ' + st.restarts + ' (' + how + ')'); }
+    if (!st.running){ Engine.start(st, t, odo); this.toast('START (' + how + ')'); this.log('START (' + how + ')  ' + fmtClock(this.local(t), true)); return; }
+    if (Engine.restart(st, t, odo)){ this.toast('RESTART → segment ' + st.segs.length + ' (' + how + ')'); this.log('RESTART seg ' + st.segs.length + ' (' + how + ')  ' + fmtClock(this.local(t), true)); }
+    else this.log('apăsare ignorată (înainte de START sau dublă): ' + fmtClock(this.local(t), true));
   },
   async send(dv){
     if (!S.src){ this.toast('Nicio sursă conectată'); return; }
@@ -488,6 +568,11 @@ function fmtDur(ms){                                      // H:MM:SS.z
 }
 const fmtKm = mm => (mm/1e6).toFixed(3);
 function fmtAvg(mm, ms){ return ms < 1000 ? '—' : ((mm/1000)/(ms/1000)*3.6).toFixed(2); }
+function fmtDev(s, signed){                                // ± M:SS.z
+  const a = Math.abs(s), z = Math.floor(a*10) % 10, w = Math.floor(a);
+  const body = Math.floor(w/60) + ':' + String(w%60).padStart(2,'0') + '.' + z;
+  return signed ? (s >= 0 ? '+' : '−') + body : body;
+}
 function flagNames(f){ return Object.entries(FLAG).filter(([,b]) => f & b).map(([n]) => n).join(' ') || '—'; }
 
 /* ================= afișare ================= */
@@ -504,21 +589,42 @@ function render(){
   $('vInst').textContent = fresh ? (p.speed * 0.036).toFixed(1) : '—';
 
   const st = S.stage;
-  if (st.running && t !== null){
-    const odo = App.nowOdo();
-    const tg = t - st.start.t, ti = t - st.seg.t, dg = odo - st.start.odo, di = odo - st.seg.odo;
-    $('tGen').textContent = fmtDur(tg); $('tInt').textContent = fmtDur(ti);
-    $('dGen').textContent = fmtKm(dg);  $('dInt').textContent = fmtKm(di);
-    $('vmGen').textContent = fmtAvg(dg, tg); $('vmInt').textContent = fmtAvg(di, ti);
-    $('startTxt').textContent = 'RESTART'; $('startSub').textContent = 'segment ' + (st.restarts + 1);
+  const r = (st.running && t !== null) ? Engine.compute(st, t, App.nowOdo()) : null;
+  if (r){
+    $('tGen').textContent = fmtDur(r.tGen); $('tInt').textContent = fmtDur(r.tInt);
+    $('dGen').textContent = fmtKm(r.dGen);  $('dInt').textContent = fmtKm(r.dInt);
+    $('vmGen').textContent = fmtAvg(r.dGen, r.tGen); $('vmInt').textContent = fmtAvg(r.dInt, r.tInt);
+    $('startTxt').textContent = 'RESTART'; $('startSub').textContent = 'segment ' + r.seg;
   } else {
     for (const id of ['tGen','tInt','dGen','dInt','vmGen','vmInt']) $(id).textContent = '—';
     $('startTxt').textContent = 'START'; $('startSub').textContent = 'RESTART';
   }
-  $('tDev').textContent = '—'; $('dDev').textContent = '—';
-  $('devText').textContent = ''; $('devFill').style.width = '0';
+  renderDev(r);
+  if (document.activeElement !== vimpEl){ const cv = Engine.curV(st); const want = cv ? cv.toFixed(1) : ''; if (vimpEl.value !== want) vimpEl.value = want; }
+  const bb = $('backBtn'); bb.classList.toggle('active', !!(r && r.back)); bb.textContent = (r && r.back) ? 'BACK activ' : 'BACK';
+  $('modeBtn').textContent = 'Abatere: ' + (st.mode === 'SEGMENT' ? 'SEGMENT' : 'PROBĂ');
+  $('kBtn').textContent = 'k = ' + st.k.toFixed(4); $('kBtn').classList.toggle('soon', st.running);
+  for (const id of ['backBtn','m10Btn','p10Btn']) $(id).classList.toggle('soon', !st.running);
 
   if ($('panel').classList.contains('open')) renderPanel(t);
+}
+// bara de abatere: întârzierea în stânga (roșu), avansul în dreapta (galben); scară rădăcină, plin la 30 s
+function renderDev(r){
+  const fill = $('devFill'), txt = $('devText'), td = $('tDev'), dd = $('dDev');
+  if (!r || r.tDev === null){
+    fill.style.width = '0'; txt.textContent = ''; td.textContent = '—'; dd.textContent = '—';
+    td.className = dd.className = 'val md num'; return;
+  }
+  const dev = r.tDev, late = dev > 0.05, early = dev < -0.05, a = Math.abs(dev);
+  const frac = Math.min(1, Math.sqrt(a / 30)) * 50;            // % din lățimea barei
+  fill.style.width = frac + '%';
+  fill.style.left = late ? (50 - frac) + '%' : '50%';
+  fill.style.background = late ? 'var(--late)' : early ? 'var(--early)' : 'transparent';
+  txt.textContent = fmtDev(a, false);
+  txt.className = 'num ' + (late ? 'late' : early ? 'early' : '');
+  if (late){ txt.style.left = '4%'; txt.style.right = ''; } else { txt.style.right = '4%'; txt.style.left = ''; }
+  td.textContent = fmtDev(dev, true); dd.textContent = (r.dDev >= 0 ? '+' : '−') + (Math.abs(r.dDev)/1e6).toFixed(3);
+  td.className = dd.className = 'val md num ' + (late ? 'late' : early ? 'early' : '');
 }
 function renderPanel(t){
   const p = S.last;
@@ -572,10 +678,50 @@ $('startBtn').onclick = () => {
 };
 $('resetBtn').onclick = () => {
   if (!S.stage.running) return;
-  if (confirm('RESET: aduci proba la zero?')){ S.stage = { running:false, start:null, seg:null, restarts:0 }; App.toast('Probă resetată'); }
+  if (confirm('RESET: aduci proba la zero?')){
+    const old = S.stage; S.stage = Engine.create(old.k, Engine.curV(old)); S.stage.mode = old.mode;
+    App.toast('Probă resetată'); App.log('RESET');
+  }
 };
-for (const id of ['backBtn','m10Btn','p10Btn','modeBtn','kBtn']) $(id).onclick = () => App.toast('Vine la pasul 5');
-$('vimp').addEventListener('change', e => { const v = parseFloat(String(e.target.value).replace(',','.')); e.target.value = isFinite(v) && v > 0 ? v.toFixed(1) : ''; });
+function needStage(){ if (!S.stage.running){ App.toast('Mai întâi START'); return false; } return true; }
+$('backBtn').onclick = () => {
+  if (!needStage()) return;
+  const on = Engine.toggleBack(S.stage, App.nowOdo());
+  App.toast(on ? 'BACK activ: distanța scade' : 'BACK oprit'); App.log(on ? 'BACK pornit' : 'BACK oprit');
+};
+function corr(mm){
+  if (!needStage()) return; const t = App.nowT(); if (t === null) return;
+  Engine.correct(S.stage, t, mm); App.toast((mm > 0 ? '+' : '−') + Math.abs(mm/1000) + ' m'); App.log('corecție ' + (mm/1000) + ' m');
+}
+$('m10Btn').onclick = () => corr(-10000);
+$('p10Btn').onclick = () => corr(10000);
+$('modeBtn').onclick = () => { S.stage.mode = S.stage.mode === 'SEGMENT' ? 'PROBA' : 'SEGMENT'; };
+$('kBtn').onclick = () => {
+  if (S.stage.running){ App.toast('k se schimbă doar înainte de START'); return; }
+  openNum('Coeficient de calibrare k', S.stage.k.toFixed(4), v => {
+    if (!(v > 0.9 && v < 1.1)){ App.toast('k trebuie să fie între 0,9 și 1,1'); return; }
+    S.stage.k = Math.round(v * 10000) / 10000; App.log('k = ' + S.stage.k.toFixed(4));
+  });
+};
+const vimpEl = $('vimp');
+function applyVimp(){
+  const v = parseFloat(String(vimpEl.value).replace(',','.'));
+  if (isFinite(v) && v >= 1 && v <= 200){
+    const r = Math.round(v * 10) / 10; vimpEl.value = r.toFixed(1);
+    if (Engine.curV(S.stage) !== r){ Engine.setV(S.stage, r); App.log('V_imp = ' + r.toFixed(1) + (S.stage.running ? ' (segment ' + S.stage.segs.length + ')' : '')); }
+  } else { const c = Engine.curV(S.stage); vimpEl.value = c ? c.toFixed(1) : ''; }
+}
+vimpEl.addEventListener('change', applyVimp);
+vimpEl.addEventListener('keydown', e => { if (e.key === 'Enter') vimpEl.blur(); });
+vimpEl.addEventListener('focus', () => setTimeout(() => vimpEl.select(), 0));
+
+// fereastră simplă pentru introducerea unui număr
+function openNum(title, value, cb){
+  $('numTitle').textContent = title; const inp = $('numInput'); inp.value = value;
+  $('numDlg').classList.add('open'); setTimeout(() => { inp.focus(); inp.select(); }, 50);
+  $('numOk').onclick = () => { $('numDlg').classList.remove('open'); cb(parseFloat(String(inp.value).replace(',','.'))); };
+  $('numCancel').onclick = () => $('numDlg').classList.remove('open');
+}
 
 function parseLocal(str){                                    // „HH:MM:SS” local → timp continuu UTC (ms)
   const m = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(str.trim()); if (!m) return null;
@@ -624,7 +770,7 @@ if (navigator.storage && navigator.storage.persist) navigator.storage.persist().
 
 setInterval(render, 50);
 render();
-window.TSD = { S, App, decodeData, encodeData, decodeEvent, encodeEvent, encodeCmd, SimSource };   // pentru teste
+window.TSD = { S, App, Engine, decodeData, encodeData, decodeEvent, encodeEvent, encodeCmd, SimSource };   // pentru teste
 </script>
 </body>
 </html>

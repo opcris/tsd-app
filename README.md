@@ -1,4 +1,4 @@
-# TSD Rally – aplicația (versiunea 0.4.0, pasul 4)
+# TSD Rally – aplicația (versiunea 0.5.0, pasul 5)
 
 Conținut: `index.html`, `manifest.webmanifest`, `sw.js`, `icon-192.png`, `icon-512.png`.
 
@@ -32,4 +32,20 @@ Versiunea apare în **☰ → Setări**.
 - **☰ → Date brute**: pachetele decodate, rata (10/s), pachetele pierdute, evenimentele și comenzile (autostart, REPLAY, prag).
 - **Fără internet**: după o deschidere cu internet, închide aplicația, pune telefonul în modul avion și deschide-o din nou.
 
-Abaterile, BACK, ±10 m, modul PROBĂ/SEGMENT și k vin la pasul 5.
+## Nou în 0.5.0: logica probei
+
+- **V_imp**: atingi câmpul galben și scrii viteza. Înainte de START devine viteza primului segment; în probă se aplică retroactiv de la ultimul RESTART.
+- **RESTART** (ecran sau „Buton cutie”): segment nou; păstrează viteza până o schimbi.
+- **T_dev / D_dev și bara**: plus (roșu, în stânga) = întârziere, minus (galben, în dreapta) = avans. Bara e plină la 30 s.
+- **Abatere: PROBĂ / SEGMENT**: cumulat pe toată proba sau doar pe segmentul curent.
+- **BACK**: prima apăsare, distanța scade (butonul devine roșu, „BACK activ”); a doua, revine la normal. Timpul curge.
+- **−10 m / +10 m**: corecție de distanță.
+- **k**: se schimbă doar înainte de START (atingi butonul), între 0,9 și 1,1.
+- **RESET**: proba la zero, cu confirmare; V_imp, k și modul rămân.
+
+Încă nu: salvarea probei la repornirea aplicației, logurile CSV, GPS-ul telefonului și clickerul (pasul 6).
+
+## Un test cu rezultat cunoscut
+
+V_imp = 50,0, simulatorul la 50 km/h, START după ce simulatorul a ajuns la viteză: T_dev stă aproape de 0.
+Coboară glisorul la 40: T_dev crește (plus, roșu). Urcă la 60: scade spre minus (galben).
