@@ -1,51 +1,40 @@
-# TSD Rally – aplicația (versiunea 0.5.0, pasul 5)
+# TSD Rally – aplicația (versiunea 0.6.0, pasul 6)
 
 Conținut: `index.html`, `manifest.webmanifest`, `sw.js`, `icon-192.png`, `icon-512.png`.
 
-## Publicare pe GitHub Pages (o singură dată)
-
-1. Pe github.com: **New repository**, numele `tsd-app`, **Public**, apoi **Create repository**.
-2. Pe pagina depozitului nou: link-ul **uploading an existing file**. Trage cele 5 fișiere (fișierele, nu folderul), apoi **Commit changes**.
-3. **Settings → Pages**. La *Source* alegi **Deploy from a branch**, branch **main**, folder **/ (root)**, apoi **Save**.
-4. După un minut sau două, aplicația e la `https://NUMELE-TĂU.github.io/tsd-app/`.
-
-## Instalare pe telefon
-
-1. Deschide adresa în **Chrome**, cu internet.
-2. Meniul **⋮ → Adaugă pe ecranul de pornire** (sau **Instalează aplicația**).
-3. Pornește-o de pe ecranul principal: se deschide pe tot ecranul, în landscape.
-
 ## Actualizare
 
-Încarci fișierele noi peste cele vechi (aceleași nume), apoi **Commit changes**.
-Pe telefon, cu internet, deschizi aplicația de două ori: prima dată descarcă versiunea nouă, a doua oară o folosește.
-Versiunea apare în **☰ → Setări**.
+Încarci cele 5 fișiere peste cele vechi pe GitHub (**Add file → Upload files**, aceleași nume), apoi **Commit changes**.
+Pe telefon, cu internet, deschizi aplicația de două ori. În **☰ → Setări → Despre** trebuie să scrie **0.6.0**.
 
-## Ce poți testa acum (cu simulatorul)
+(Prima publicare, dacă e cazul: depozit public `tsd-app`, încarci fișierele, apoi **Settings → Pages → Deploy from a branch → main → / (root) → Save**.
+Adresa: `https://NUMELE-TĂU.github.io/tsd-app/`. Pe telefon: Chrome → **⋮ → Adaugă pe ecranul de pornire**.)
 
-- **☰ → Sursă → Pornește simulatorul**, apoi START de pe ecran.
-- Viteza din glisor; T_gen, D_gen și mediile curg (cu k = 1).
-- **Buton cutie**: un RESTART venit de la „cutie”, ca de la switch.
-- **Semnal pierdut 10 s**: GPS trece pe EST, distanța continuă. **40 s**: după 30 s distanța se oprește.
-- **Repornire cutie**: distanța totală continuă (lipsesc doar cele 1,5 s de oprire).
-- **Pierde următorul eveniment**, apoi **Buton cutie**: aplicația observă lipsa și cere REPLAY.
-- **☰ → Date brute**: pachetele decodate, rata (10/s), pachetele pierdute, evenimentele și comenzile (autostart, REPLAY, prag).
-- **Fără internet**: după o deschidere cu internet, închide aplicația, pune telefonul în modul avion și deschide-o din nou.
+## Ce e nou în 0.6.0
 
-## Nou în 0.5.0: logica probei
+- **Doar telefonul**: ☰ → Sursă → **Folosește GPS-ul telefonului**. Merge fără cutie. Precizia GPS apare sus (de exemplu „±5 m”).
+- **Rezervă**: cu cutia conectată, GPS-ul telefonului merge în paralel. Dacă cutia nu trimite date peste 1 s, distanța continuă din telefon („TELEFON (rezervă)” sus) și se reglează când cutia revine.
+- **Proba se salvează**: dacă aplicația se închide sau telefonul repornește, la redeschidere proba continuă. Alegi din nou sursa din ☰ → Sursă. Cu cutia, distanța parcursă între timp vine din odometrul cutiei; doar cu telefonul, se estimează în linie dreaptă.
+- **Loguri**: ☰ → Loguri. Un log începe la START și se închide la RESET. „Evenimente” și „Continuu” se salvează ca CSV (în Descărcări); butonul ⇪ le trimite direct (e-mail, WhatsApp etc.). CSV-ul folosește „;” și virgulă zecimală, pentru Excel în română.
+- **Autostart**: ☰ → Probă. Cu cutia îl face cutia; doar cu telefonul îl face aplicația, pe ceasul telefonului.
+- **Calibrare**: ☰ → Probă. „Început” la reperul de start al tronsonului, „Sfârșit” la reperul final, introduci distanța oficială în km, apoi **Aplică k** (doar înainte de START).
+- **Ceas**: ☰ → Setări. Offset în pași de 0,1 s și 1 s, aliniat cu time.is.
+- **Clicker Bluetooth**: ☰ → Setări → **Învață tasta**, apoi apeși butonul clickerului. De atunci acea tastă dă START/RESTART; celelalte sunt ignorate.
+- **START mai precis**: momentul apăsării e cel în care atingi ecranul, nu cel în care ridici degetul.
 
-- **V_imp**: atingi câmpul galben și scrii viteza. Înainte de START devine viteza primului segment; în probă se aplică retroactiv de la ultimul RESTART.
-- **RESTART** (ecran sau „Buton cutie”): segment nou; păstrează viteza până o schimbi.
-- **T_dev / D_dev și bara**: plus (roșu, în stânga) = întârziere, minus (galben, în dreapta) = avans. Bara e plină la 30 s.
-- **Abatere: PROBĂ / SEGMENT**: cumulat pe toată proba sau doar pe segmentul curent.
-- **BACK**: prima apăsare, distanța scade (butonul devine roșu, „BACK activ”); a doua, revine la normal. Timpul curge.
-- **−10 m / +10 m**: corecție de distanță.
-- **k**: se schimbă doar înainte de START (atingi butonul), între 0,9 și 1,1.
-- **RESET**: proba la zero, cu confirmare; V_imp, k și modul rămân.
+## Primul test live (doar cu telefonul)
 
-Încă nu: salvarea probei la repornirea aplicației, logurile CSV, GPS-ul telefonului și clickerul (pasul 6).
+Navigatorul operează telefonul, nu șoferul.
 
-## Un test cu rezultat cunoscut
+1. Telefonul pe suport, cât mai sus pe parbriz, la încărcător. Ecranul rămâne aprins singur.
+2. ☰ → Sursă → **Folosește GPS-ul telefonului**. Permiți localizarea (precisă). Aștepți ca precizia de sus să scadă sub 10 m.
+3. ☰ → Setări → Ceas: aliniezi cu time.is pe alt telefon (opțional pentru test).
+4. **Calibrare pe borne**: ☰ → Probă → „Început” în dreptul unei borne kilometrice, „Sfârșit” după 5 borne, distanța oficială 5,000. Notează k-ul, dar nu e obligatoriu să-l aplici. Bornele nu sunt perfect exacte; testul arată ordinul de mărime.
+5. **O probă scurtă**: V_imp de exemplu 40,0, START, încearcă să ții T_dev aproape de 0. Fă câteva RESTART-uri cu viteze diferite, încearcă BACK și ±10 m.
+6. **Închide aplicația în mers** (din lista de aplicații recente) și redeschide-o: proba trebuie să continue.
+7. La final: ☰ → Loguri → „Evenimente” și „Continuu” pentru proba de test. Trimite-mi fișierele: din ele văd cât de des dă telefonul poziții, cât de zgomotoasă e viteza și cât „merge” distanța cu mașina oprită.
 
-V_imp = 50,0, simulatorul la 50 km/h, START după ce simulatorul a ajuns la viteză: T_dev stă aproape de 0.
-Coboară glisorul la 40: T_dev crește (plus, roșu). Urcă la 60: scade spre minus (galben).
+## Testul cu simulatorul (rămâne valabil)
+
+☰ → Sursă → **Pornește simulatorul**: Buton cutie, Semnal pierdut 10/40 s, Repornire cutie, Pierde următorul eveniment.
+V_imp 50,0 cu simulatorul la 50 km/h: T_dev stă aproape de 0.
