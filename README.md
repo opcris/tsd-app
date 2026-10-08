@@ -1,14 +1,32 @@
-# TSD Rally – aplicația (versiunea 0.6.1, pasul 6)
+# TSD Rally – aplicația (versiunea 0.6.2, pasul 6)
 
 Conținut: `index.html`, `manifest.webmanifest`, `sw.js`, `icon-192.png`, `icon-512.png`.
 
 ## Actualizare
 
 Încarci cele 5 fișiere peste cele vechi pe GitHub (**Add file → Upload files**, aceleași nume), apoi **Commit changes**.
-Pe telefon, cu internet, deschizi aplicația de două ori. În **☰ → Setări → Despre** trebuie să scrie **0.6.1**.
+Pe telefon, cu internet, deschizi aplicația de două ori. În **☰ → Setări → Despre** trebuie să scrie **0.6.2**.
 
 (Prima publicare, dacă e cazul: depozit public `tsd-app`, încarci fișierele, apoi **Settings → Pages → Deploy from a branch → main → / (root) → Save**.
 Adresa: `https://NUMELE-TĂU.github.io/tsd-app/`. Pe telefon: Chrome → **⋮ → Adaugă pe ecranul de pornire**.)
+
+## Nou în 0.6.2
+
+- **Filtru de salturi pentru GPS-ul telefonului**: o citire cu precizie mai slabă de 20 m nu se folosește. Aplicația păstrează ultima viteză validă cel mult 30 s și afișează „EST” lângă precizie, sus. Pe loc, cu semnal slab, distanța nu mai crește din salturi.
+- **Accelerometrul e înregistrat în logul continuu** (nu e folosit la calcule): numărul de citiri, frecvența, media, abaterea standard și amplitudinea, pe fiecare rând.
+- **Viteza brută a telefonului** e înregistrată separat (`tel_v_brut_kmh`) de cea folosită (`v_kmh`), ca să se vadă ce a filtrat aplicația.
+- **Modelul telefonului** apare în lista de loguri și în primul rând al CSV-ului de evenimente, ca să poți compara aparatele.
+
+## Testul cu mai multe telefoane
+
+Pe fiecare telefon, în aceleași condiții (ideal toate odată, pe același suport):
+
+1. ☰ → Sursă → **Folosește GPS-ul telefonului**, apoi **START** (logul se înregistrează doar după START).
+2. **5 minute pe loc, afară**, cu motorul pornit.
+3. **O tură scurtă** cu câteva opriri complete (și, dacă se poate, o porțiune în coloană, la pas).
+4. **RESET**, apoi ☰ → Loguri → **Continuu** (și **Evenimente**), trimise mai departe.
+
+Din fișiere se vede, pentru fiecare telefon: cât de des dă poziții, cât sare viteza pe loc, câtă distanță falsă adună oprit și dacă accelerometrul deosebește oprirea cu motorul pornit de mersul la pas.
 
 ## Ce e nou în 0.6.0
 

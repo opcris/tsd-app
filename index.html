@@ -266,7 +266,7 @@ table.raw td:first-child{color:var(--mute)}
 <div id="rotate">Rotește telefonul în poziție orizontală.</div>
 <script>
 'use strict';
-const VERSION = '0.6.1';
+const VERSION = '0.6.2';
 
 /* ================= protocol (specificații v1.3, secțiunea 10) ================= */
 const UUID = {
@@ -500,13 +500,15 @@ const Engine = {
 /* ================= GPS-ul telefonului ================= */
 // Integrează distanța din viteza raportată de telefon (Doppler, orizontală). Folosit ca sursă completă sau ca rezervă.
 const PHONE_STOP = 0.3;                       // m/s (~1 km/h): sub prag distanța nu crește
+const PHONE_ACC_MAX = 20;                     // m: citirile cu precizie mai slabă nu se folosesc (filtrul de salturi)
+const PHONE_HOLD_MS = 30000;                  // ms: cât timp se păstrează ultima viteză validă (ca la cutie)
 function hav(a, b){                           // distanță în metri între două poziții
   const R = 6371008.8, r = Math.PI/180, dLat = (b.lat-a.lat)*r, dLon = (b.lon-a.lon)*r;
   const h = Math.sin(dLat/2)**2 + Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dLon/2)**2;
   return 2*R*Math.asin(Math.min(1, Math.sqrt(h)));
 }
 class PhoneGPS {
-  constructor(onFix){ this.onFix = onFix; this.watch = null; this.odo = 0; this.prev = null; this.speed = 0; this.acc = null; this.valid = false; this.at = 0; this.err = ''; this.n = 0; }
+  constructor(onFix){ this.onFix = onFix; this.watch = null; this.odo = 0; this.prev = null; this.speed = 0; this.rawSpeed = null; this.acc = null; this.valid = false; this.est = false; this.lastGoodV = 0; this.lastGoodTs = null; this.at = 0; this.err = ''; this.n = 0; }
   static supported(){ return 'geolocation' in navigator; }
   start(){
     if (!PhoneGPS.supported()){ this.err = 'fără geolocație'; return; }
@@ -516,16 +518,21 @@ class PhoneGPS {
   stop(){ if (this.watch !== null) navigator.geolocation.clearWatch(this.watch); this.watch = null; }
   fix(pos){
     const c = pos.coords, ts = pos.timestamp, here = { lat:c.latitude, lon:c.longitude };
-    let v = (typeof c.speed === 'number' && isFinite(c.speed)) ? Math.max(0, c.speed) : null;
+    let raw = (typeof c.speed === 'number' && isFinite(c.speed)) ? Math.max(0, c.speed) : null;
+    if (raw === null && this.prev && ts > this.prev.ts) raw = hav(this.prev, here) / ((ts - this.prev.ts) / 1000);   // fără viteză raportată: din poziții
+    const good = c.accuracy <= PHONE_ACC_MAX;
+    // filtrul de salturi: o citire cu precizie slabă nu se folosește; se păstrează ultima viteză validă (EST), cel mult 30 s
+    let v, est = false;
+    if (good){ v = raw === null ? 0 : raw; this.lastGoodV = v; this.lastGoodTs = ts; }
+    else if (this.lastGoodTs !== null && ts - this.lastGoodTs < PHONE_HOLD_MS){ v = this.lastGoodV; est = true; }
+    else v = 0;
     if (this.prev){
       const dt = (ts - this.prev.ts) / 1000;
-      if (v === null && dt > 0) v = hav(this.prev, here) / dt;            // fără viteză raportată: din poziții
       if (dt > 0 && dt < 5){ const va = (v + this.prev.v) / 2; if (va >= PHONE_STOP) this.odo += va * dt * 1000; }
-      else if (dt >= 5 && dt < 600) this.odo += hav(this.prev, here) * 1000; // gol lung: linie dreaptă (subestimează în viraje)
+      else if (dt >= 5 && dt < 600 && good && this.prev.good) this.odo += hav(this.prev, here) * 1000; // gol lung: linie dreaptă (subestimează în viraje)
     }
-    if (v === null) v = 0;
-    this.prev = { lat:here.lat, lon:here.lon, ts, v };
-    this.speed = v; this.acc = c.accuracy; this.valid = c.accuracy <= 50; this.at = performance.now(); this.n++; this.err = '';
+    this.prev = { lat:here.lat, lon:here.lon, ts, v, good };
+    this.rawSpeed = raw; this.speed = v; this.acc = c.accuracy; this.valid = good; this.est = est; this.at = performance.now(); this.n++; this.err = '';
     if (this.onFix) this.onFix(this);
   }
   odoNow(perf = performance.now()){                                      // mm, extrapolat cel mult 1,5 s
@@ -542,7 +549,7 @@ class PhoneSource {
   }
   emit(g){
     this.seq = (this.seq + 1) & 0xffff;
-    const flags = FLAG.TIME | (g.valid ? FLAG.FIX : 0) | (g.speed < PHONE_STOP ? FLAG.STOP : 0);
+    const flags = FLAG.TIME | (g.valid ? FLAG.FIX : 0) | (g.est ? FLAG.EST : 0) | (g.speed < PHONE_STOP ? FLAG.STOP : 0);
     this.app.phonePos = { lat:g.prev.lat, lon:g.prev.lon };
     this.app.onDataBytes(encodeData({ seq:this.seq, utc:Date.now() % DAY, odo:modU32(Math.round(g.odo)),
       speed:Math.min(65535, Math.round(g.speed*100)), flags, sats:0, sacc:255, evSeq:0 }));
@@ -550,6 +557,33 @@ class PhoneSource {
   async send(){ throw new Error('telefonul nu primește comenzi'); }
   stop(){ if (this.gps) this.gps.stop(); }
 }
+
+/* ================= accelerometrul: doar înregistrat în log, nefolosit la calcule ================= */
+// Statistici pe fiecare interval dintre două rânduri de log: număr de citiri, frecvență, medie, abatere standard și amplitudine
+// a modulului accelerației (cu gravitația inclusă, deci independent de cum stă telefonul în suport).
+const Acc = {
+  on:false, n:0, sum:0, sum2:0, min:Infinity, max:-Infinity, t0:0,
+  start(){
+    if (this.on || !('DeviceMotionEvent' in window)) return;
+    this.on = true; this.t0 = performance.now();
+    window.addEventListener('devicemotion', e => {
+      const a = e.accelerationIncludingGravity; if (!a || a.x === null || a.x === undefined) return;
+      const m = Math.hypot(a.x, a.y, a.z); this.n++; this.sum += m; this.sum2 += m*m;
+      if (m < this.min) this.min = m; if (m > this.max) this.max = m;
+    });
+  },
+  take(){
+    const now = performance.now(), n = this.n, dt = (now - this.t0) / 1000;
+    const mean = n ? this.sum / n : null, sd = n > 1 ? Math.sqrt(Math.max(0, this.sum2/n - mean*mean)) : null;
+    const out = [n, dt > 0 ? n/dt : null, mean, sd, n ? this.max - this.min : null];
+    this.n = 0; this.sum = 0; this.sum2 = 0; this.min = Infinity; this.max = -Infinity; this.t0 = now;
+    return out;
+  },
+};
+Acc.start();
+let DEVICE = (/Android [^;)]+; ([^;)]+)/.exec(navigator.userAgent) || [, , ''])[2] || navigator.platform || '';
+if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues)
+  navigator.userAgentData.getHighEntropyValues(['model','platformVersion']).then(v => { if (v.model) DEVICE = v.model + (v.platformVersion ? ' · Android ' + v.platformVersion : ''); }).catch(() => {});
 
 /* ================= stocare: loguri în IndexedDB ================= */
 const DB = {
@@ -584,12 +618,12 @@ const DB = {
 };
 const EV_COLS = ['nr','ora','tip','segment','T_gen_s','D_gen_m','V_imp','T_dev_s','seg_durata_s','seg_dist_m','seg_vmed_kmh','detalii'];
 const C_COLS  = ['ora','t_ms','sursa','odo_brut_mm','odo_total_mm','v_kmh','flags','sat','D_gen_m','T_gen_s','V_imp','T_dev_s','segment','back',
-                 'tel_v_kmh','tel_odo_m','tel_prec_m','lat','lon'];
+                 'tel_v_kmh','tel_odo_m','tel_prec_m','lat','lon','tel_v_brut_kmh','acc_n','acc_hz','acc_med_ms2','acc_sd_ms2','acc_ampl_ms2'];
 const Log = {
   id:null, meta:null, ev:[], c:[], n:0,
   begin(t){
     this.id = 'L' + Date.now(); this.n = 0; this.ev = []; this.c = [];
-    this.meta = { id:this.id, created:Date.now(), start:fmtClock(App.local(t)), src:S.src ? S.src.label : '—', k:S.stage.k, evRows:0, cRows:0, distM:0, durS:0 };
+    this.meta = { id:this.id, created:Date.now(), start:fmtClock(App.local(t)), src:S.src ? S.src.label : '—', k:S.stage.k, evRows:0, cRows:0, distM:0, durS:0, device:DEVICE };
     DB.putLog(this.meta).catch(() => {});
   },
   resume(id, meta, n){ this.id = id; this.meta = meta; this.n = n || 0; this.ev = []; this.c = []; },
@@ -619,7 +653,7 @@ function csvNum(v, d){ if (v === null || v === undefined || v === '' || !isFinit
 async function exportCsv(id, kind, share){
   const chunks = (await DB.chunks(id)).filter(c => c.kind === kind);
   const rows = chunks.flatMap(c => c.rows);
-  const dec = kind === 'ev' ? [0,null,null,0,1,1,1,2,1,1,2,null] : [null,0,null,0,0,2,0,0,1,1,1,2,0,0,2,1,1,6,6];
+  const dec = kind === 'ev' ? [0,null,null,0,1,1,1,2,1,1,2,null] : [null,0,null,0,0,2,0,0,1,1,1,2,0,0,2,1,1,6,6,2,0,0,3,3,3];
   const lines = [(kind === 'ev' ? EV_COLS : C_COLS).join(';')].concat(rows.map(r => r.map((v, i) =>
     dec[i] === null || typeof v === 'string' ? String(v ?? '').replace(/;/g, ',') : csvNum(v, dec[i])).join(';')));
   const name = 'TSD_' + id.slice(1) + '_' + (kind === 'ev' ? 'evenimente' : 'continuu') + '.csv';
@@ -730,11 +764,12 @@ const App = {
     }
     // log continuu
     if (S.stage.running && S.t !== null){
-      const odo = this.odoAt(now), r = Engine.compute(S.stage, S.t, odo), b = S.backup;
+      const odo = this.odoAt(now), r = Engine.compute(S.stage, S.t, odo), b = S.backup || (srcKind() === 'phone' ? S.src.gps : null);
       Log.cont([fmtClock(this.local(S.t), true), S.t, S.src ? S.src.label : '', p.odo, Math.round(odo), p.speed*0.036, p.flags, p.sats,
         r.dGen/1000, r.tGen/1000, r.v, r.tDev, r.seg, r.back ? 1 : 0,
         b && b.n ? b.speed*3.6 : null, b && b.n ? b.odo/1000 : null, b && b.n ? b.acc : null,
-        b && b.prev ? b.prev.lat : (this.phonePos ? this.phonePos.lat : null), b && b.prev ? b.prev.lon : (this.phonePos ? this.phonePos.lon : null)]);
+        b && b.prev ? b.prev.lat : (this.phonePos ? this.phonePos.lat : null), b && b.prev ? b.prev.lon : (this.phonePos ? this.phonePos.lon : null),
+        b && b.n && b.rawSpeed !== null ? b.rawSpeed*3.6 : null, ...Acc.take()]);
     }
   },
 
@@ -761,7 +796,7 @@ const App = {
     const st = S.stage;
     if (!fromBox){ if (t - S.lastPress < 300) return; S.lastPress = t; }     // anti-ricoșeu pentru ecran și clicker
     if (!st.running){
-      Engine.start(st, t, odo); Log.begin(t); Log.event('START', t, { note:how });
+      Engine.start(st, t, odo); Log.begin(t); Log.event('START', t, { note:how + ' · ' + DEVICE + ' · v' + VERSION });
       this.toast('START (' + how + ')'); this.log('START (' + how + ')  ' + fmtClock(this.local(t), true)); saveStage(); return;
     }
     const prev = st.segs.filter(s => s.t < t).pop();
@@ -849,7 +884,7 @@ function render(){
   const g = $('stGps');
   if (S.gap){ g.textContent = 'telefon ±' + Math.round(S.backup.acc || 0) + ' m'; g.className = 'st-est'; }
   else if (!fresh){ g.textContent = S.src ? (kind === 'phone' && S.src.gps && S.src.gps.err ? S.src.gps.err : 'fără date') : '—'; g.className = S.src ? 'st-bad' : ''; }
-  else if (kind === 'phone'){ const a = S.src.gps.acc; g.textContent = '±' + Math.round(a) + ' m'; g.className = (p.flags & FLAG.FIX) ? 'st-ok' : 'st-bad'; }
+  else if (kind === 'phone'){ const a = S.src.gps.acc; g.textContent = ((p.flags & FLAG.EST) ? 'EST ' : '') + '±' + Math.round(a) + ' m'; g.className = (p.flags & FLAG.FIX) ? 'st-ok' : (p.flags & FLAG.EST) ? 'st-est' : 'st-bad'; }
   else if (p.flags & FLAG.FIX){ g.textContent = 'FIX · ' + p.sats + ' sat'; g.className = 'st-ok'; }
   else if (p.flags & FLAG.EST){ g.textContent = 'EST'; g.className = 'st-est'; }
   else { g.textContent = 'fără fix'; g.className = 'st-bad'; }
@@ -939,7 +974,7 @@ async function renderLogs(){
   if (navigator.storage && navigator.storage.estimate){ const e = await navigator.storage.estimate(); $('logStore').textContent = 'folosit ' + (e.usage/1e6).toFixed(1) + ' MB'; }
   $('logTbl').innerHTML = logs.length ? logs.map(l => {
     const d = new Date(l.created);
-    return '<tr><td>' + d.toLocaleDateString('ro-RO') + ' ' + l.start + (l.id === Log.id ? ' <b>(în curs)</b>' : '') + '<br><span class="note">' + l.src + ' · ' +
+    return '<tr><td>' + d.toLocaleDateString('ro-RO') + ' ' + l.start + (l.id === Log.id ? ' <b>(în curs)</b>' : '') + '<br><span class="note">' + l.src + (l.device ? ' (' + l.device + ')' : '') + ' · ' +
       fmtDur(l.durS*1000).slice(0, -2) + ' · ' + (l.distM/1000).toFixed(3) + ' km · k ' + Number(l.k).toFixed(4) + '</span></td>' +
       '<td><button class="s" data-ex="' + l.id + '|ev|0">Evenimente</button><button class="s" data-ex="' + l.id + '|ev|1">⇪</button></td>' +
       '<td><button class="s" data-ex="' + l.id + '|c|0">Continuu</button><button class="s" data-ex="' + l.id + '|c|1">⇪</button></td>' +
