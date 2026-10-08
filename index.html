@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#101418">
+<title>TSD Rally</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#ffffff; --panel:#f3f4f6; --ink:#111418; --mute:#5f6670; --line:#c9ced6;
+  --edit:#fff200; --edit-ink:#111418; --late:#d32f2f; --early:#e0a800; --ok:#2e7d32;
+  --btn:#ffffff; --btn-ink:#111418; --start:#e8f5e9; --start-line:#2e7d32; --warn:#d32f2f;
+}
+:root[data-theme="night"]{
+  --bg:#0c0f12; --panel:#161b21; --ink:#e9edf1; --mute:#8b949e; --line:#2c333b;
+  --edit:#5c5600; --edit-ink:#fff7a8; --late:#ff5a52; --early:#ffcc33; --ok:#4caf50;
+  --btn:#161b21; --btn-ink:#e9edf1; --start:#12311a; --start-line:#4caf50; --warn:#ff5a52;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;overflow:hidden;
+  -webkit-user-select:none;user-select:none}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+#app{height:100dvh;width:100vw;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr;padding:0 max(8px,env(safe-area-inset-right)) 6px max(8px,env(safe-area-inset-left))}
+
+/* status bar */
+#status{display:flex;align-items:center;gap:clamp(6px,1.8vw,20px);min-width:0;overflow:hidden;padding:4px 0;border-bottom:1px solid var(--line);
+  font-size:clamp(11px,3.3vh,16px);color:var(--mute);white-space:nowrap}
+#status b{color:var(--ink);font-weight:600}
+#clock{background:var(--edit);color:var(--edit-ink);padding:1px 6px;border-radius:4px;font-weight:700}
+.st-bad{color:var(--warn)!important}
+.st-ok{color:var(--ok)!important}
+#menuBtn{margin-left:auto;flex:none;border:1px solid var(--line);background:var(--btn);color:var(--btn-ink);border-radius:6px;
+  font-size:clamp(14px,4vh,20px);padding:0 10px;line-height:1.5}
+
+/* main */
+#main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-width:0;gap:clamp(8px,2vw,24px);padding-top:clamp(4px,1.5vh,10px);min-height:0}
+.col{display:flex;flex-direction:column;min-height:0;min-width:0;gap:clamp(4px,1.4vh,10px)}
+.row{display:flex;align-items:baseline;gap:8px}
+.lbl{color:var(--mute);font-size:clamp(11px,3.6vh,19px);min-width:3.7em}
+.val{font-weight:700;font-size:clamp(18px,7.6vh,46px);line-height:1.05}
+.val.md{font-size:clamp(16px,6.2vh,36px)}
+.pair{display:grid;grid-template-columns:auto 1fr auto 1fr;column-gap:8px;row-gap:clamp(2px,1vh,8px);align-items:baseline}
+.unit{color:var(--mute);font-size:clamp(9px,2.6vh,13px)}
+.spacer{flex:1}
+
+/* buttons */
+.btns{display:grid;grid-template-columns:1fr 1fr 1.35fr;grid-template-rows:1fr 1fr;gap:clamp(5px,1.4vh,10px);height:clamp(80px,30vh,160px)}
+button.b{border:1.5px solid var(--ink);background:var(--btn);color:var(--btn-ink);border-radius:10px;
+  font-size:clamp(13px,4.2vh,22px);font-weight:600;padding:0;touch-action:manipulation}
+button.b:active{transform:scale(.97);filter:brightness(.92)}
+button.b.soon{opacity:.45}
+#startBtn{grid-row:1 / span 2;grid-column:3;background:var(--start);border:2.5px solid var(--start-line);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+#startBtn .big{font-size:clamp(16px,5.6vh,30px);font-weight:800;letter-spacing:.02em}
+#startBtn .sub{font-size:clamp(10px,3vh,15px);color:var(--mute);font-weight:600}
+
+/* deviation bar */
+#devbar{position:relative;border:1.5px solid var(--ink);border-radius:8px;height:clamp(50px,19vh,110px);overflow:hidden}
+#devMarker{position:absolute;left:50%;top:8%;bottom:8%;width:5px;margin-left:-2.5px;background:var(--ink)}
+#devFill{position:absolute;top:18%;bottom:18%;width:0}
+#devText{position:absolute;top:50%;transform:translateY(-50%);font-weight:800;font-size:clamp(20px,9vh,52px)}
+#devHint{display:flex;justify-content:space-between;font-size:clamp(9px,2.6vh,13px);margin-top:-2px}
+#devHint .l{color:var(--late)} #devHint .r{color:var(--early)}
+.vimp{display:inline-block;background:var(--edit);color:var(--edit-ink);border-radius:6px;padding:0 8px;
+  font-weight:800;font-size:clamp(22px,9vh,54px);line-height:1.1;width:3.6em;text-align:center;border:0;outline:none}
+.late{color:var(--late)!important} .early{color:var(--early)!important}
+.btns2{display:grid;grid-template-columns:1fr 1fr;gap:clamp(5px,1.4vh,10px);height:clamp(36px,12vh,64px)}
+.btns2 button.b{background:var(--edit);color:var(--edit-ink);border-color:var(--ink)}
+
+/* panel */
+#panel{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:20}
+#panel.open{display:block}
+#sheet{position:absolute;inset:3vh 2vw;background:var(--bg);border:1px solid var(--line);border-radius:12px;
+  display:grid;grid-template-rows:auto 1fr;overflow:hidden}
+#tabs{display:flex;gap:4px;padding:6px;border-bottom:1px solid var(--line);align-items:center}
+#tabs button{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:6px 12px;font-size:15px}
+#tabs button.on{background:var(--ink);color:var(--bg)}
+#tabs .x{margin-left:auto;font-size:18px}
+.tab{display:none;overflow:auto;padding:10px 14px;font-size:14px;-webkit-user-select:text;user-select:text}
+.tab.on{display:block}
+.tab h3{margin:10px 0 6px;font-size:15px}
+.tab button.s{border:1px solid var(--ink);background:var(--btn);color:var(--btn-ink);border-radius:8px;padding:8px 12px;font-size:14px;margin:3px 4px 3px 0}
+.tab button.s.primary{background:var(--ink);color:var(--bg)}
+.tab input{font-size:15px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);width:7.5em}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px}
+table.raw{border-collapse:collapse;width:100%;font-size:13px}
+table.raw td{border-bottom:1px solid var(--line);padding:3px 6px;white-space:nowrap}
+table.raw td:first-child{color:var(--mute)}
+.note{color:var(--mute);font-size:13px}
+#evlist{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;white-space:pre;max-height:30vh;overflow:auto;
+  background:var(--panel);padding:6px;border-radius:6px}
+
+/* toast + rotate */
+#toast{position:fixed;left:50%;bottom:6vh;transform:translateX(-50%);background:var(--ink);color:var(--bg);
+  padding:8px 14px;border-radius:8px;font-size:15px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:30}
+#toast.on{opacity:.95}
+#rotate{display:none;position:fixed;inset:0;background:var(--bg);z-index:40;align-items:center;justify-content:center;
+  text-align:center;font-size:20px;padding:20px}
+@media (orientation:portrait){ #rotate{display:flex} }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="status" class="num">
+    <span id="clock">--:--:--</span>
+    <span>Sursă: <b id="stSrc">—</b></span>
+    <span>GPS: <b id="stGps">—</b></span>
+    <span>BLE: <b id="stBle">—</b></span>
+    <span id="stArm"></span>
+    <span>Bat: <b id="stBat">—</b></span>
+    <button id="menuBtn" aria-label="Meniu">☰</button>
+  </div>
+
+  <div id="main">
+    <div class="col">
+      <div class="row"><span class="lbl">T_gen</span><span class="val num" id="tGen">—</span></div>
+      <div class="row"><span class="lbl">T_int</span><span class="val num" id="tInt">—</span></div>
+      <div class="pair">
+        <span class="lbl">D_gen</span><span class="val md num" id="dGen">—</span>
+        <span class="lbl">Vm_gen</span><span class="val md num" id="vmGen">—</span>
+        <span class="lbl">D_int</span><span class="val md num" id="dInt">—</span>
+        <span class="lbl">Vm_int</span><span class="val md num" id="vmInt">—</span>
+      </div>
+      <div class="unit">distanțe în km, viteze în km/h</div>
+      <div class="spacer"></div>
+      <div class="btns">
+        <button class="b" id="resetBtn">RESET</button>
+        <button class="b soon" id="m10Btn">−10 m</button>
+        <button class="b" id="startBtn"><span class="big" id="startTxt">START</span><span class="sub" id="startSub">RESTART</span></button>
+        <button class="b soon" id="backBtn">BACK</button>
+        <button class="b soon" id="p10Btn">+10 m</button>
+      </div>
+    </div>
+
+    <div class="col">
+      <div>
+        <div id="devbar"><div id="devFill"></div><div id="devMarker"></div><div id="devText" class="num"></div></div>
+        <div id="devHint"><span class="l">întârziere</span><span class="r">avans</span></div>
+      </div>
+      <div class="row"><span class="lbl">V_imp</span><input id="vimp" class="vimp num" inputmode="decimal" placeholder="00.0" autocomplete="off"><span class="unit">km/h</span></div>
+      <div class="row"><span class="lbl">V_inst</span><span class="val md num" id="vInst">—</span></div>
+      <div class="row"><span class="lbl">T_dev</span><span class="val md num" id="tDev">—</span></div>
+      <div class="row"><span class="lbl">D_dev</span><span class="val md num" id="dDev">—</span><span class="unit">km</span></div>
+      <div class="spacer"></div>
+      <div class="btns2">
+        <button class="b soon" id="modeBtn">Abatere: PROBĂ</button>
+        <button class="b soon" id="kBtn">k = 1.0000</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="panel">
+  <div id="sheet">
+    <div id="tabs">
+      <button data-tab="tSrc" class="on">Sursă</button>
+      <button data-tab="tRaw">Date brute</button>
+      <button data-tab="tAbout">Setări</button>
+      <button class="x" id="closePanel" aria-label="Închide">✕</button>
+    </div>
+    <div class="tab on" id="tSrc">
+      <h3>Cutia (Bluetooth)</h3>
+      <button class="s primary" id="bleBtn">Conectează cutia</button>
+      <button class="s" id="discBtn">Deconectează</button>
+      <div class="note" id="bleNote"></div>
+      <h3>Simulator</h3>
+      <button class="s primary" id="simBtn">Pornește simulatorul</button>
+      <div id="simCtl" style="display:none">
+        <p>Viteză țintă: <b id="simSpdTxt" class="num">50</b> km/h<br>
+          <input id="simSpd" type="range" min="0" max="130" step="1" value="50" style="width:min(520px,90%)"></p>
+        <button class="s" id="simBtnBox">Buton cutie</button>
+        <button class="s" id="simLost10">Semnal pierdut 10 s</button>
+        <button class="s" id="simLost40">Semnal pierdut 40 s</button>
+        <button class="s" id="simReboot">Repornire cutie</button>
+        <label class="note" style="display:block;margin-top:6px"><input type="checkbox" id="simDropEv" style="width:auto"> Pierde următorul eveniment (testează cererea REPLAY)</label>
+      </div>
+    </div>
+    <div class="tab" id="tRaw">
+      <div class="grid2">
+        <div>
+          <h3>Ultimul pachet DATA</h3>
+          <table class="raw num" id="rawTbl"></table>
+        </div>
+        <div>
+          <h3>Legătura</h3>
+          <table class="raw num" id="linkTbl"></table>
+          <h3>Comenzi</h3>
+          <div>Autostart (ora locală): <input id="asTime" placeholder="HH:MM:SS" inputmode="numeric">
+            <button class="s" id="asSend">Trimite</button><button class="s" id="asCancel">Anulează</button></div>
+          <div>REPLAY de la ev_seq: <input id="rpSeq" inputmode="numeric" value="1"> <button class="s" id="rpSend">Trimite</button></div>
+          <div>Prag staționare (cm/s): <input id="thVal" inputmode="numeric" value="14"> <button class="s" id="thSend">Trimite</button></div>
+        </div>
+      </div>
+      <h3>Evenimente</h3>
+      <div id="evlist"></div>
+    </div>
+    <div class="tab" id="tAbout">
+      <h3>Afișaj</h3>
+      <button class="s" id="themeBtn">Temă: zi / noapte</button>
+      <button class="s" id="fsBtn">Ecran complet</button>
+      <h3>Despre</h3>
+      <p>TSD Rally · versiunea <b id="ver"></b> · protocol 1</p>
+      <p class="note">Pasul 4: conexiune, date brute, simulator. Calculele de probă (abateri, segmente, BACK, ±10 m, k) vin la pasul 5.
+        T_gen, D_gen și mediile de mai sus sunt deja reale, cu k = 1.</p>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+<div id="rotate">Rotește telefonul în poziție orizontală.</div>
+
+<script>
+'use strict';
+const VERSION = '0.4.0';
+
+/* ================= protocol (specificații v1.3, secțiunea 10) ================= */
+const UUID = {
+  SERVICE: 'fc00383f-4457-4f18-b29c-15c465b30396',
+  DATA:    '6968dd9b-d56f-4bc8-9b4c-f1f2edfdd193',
+  EVENT:   '9a7b3ea6-2c2b-4cf4-a0a1-d82d2fda8182',
+  CONTROL: 'b1a540d0-2cc7-4682-abba-8e6988e422cb',
+  INFO:    '3bcbbaac-7134-45a4-83a2-e1afd62ba31e',
+};
+const FLAG = { FIX:1, EST:2, STOP:4, ARMED:8, PPS:16, TIME:32 };
+const EV = { BUTTON:1, AUTOSTART:2, BOOT:3 };
+const EV_NAME = { 1:'BUTON', 2:'AUTOSTART', 3:'PORNIRE CUTIE' };
+const CMD = { SET_AUTOSTART:1, REPLAY:2, SET_STOP:3 };
+const DAY = 86400000, U32 = 4294967296;
+
+function decodeData(dv){
+  if (dv.byteLength < 16) throw new Error('DATA prea scurt: ' + dv.byteLength);
+  return { seq:dv.getUint16(0,true), utc:dv.getUint32(2,true), odo:dv.getUint32(6,true),
+           speed:dv.getUint16(10,true), flags:dv.getUint8(12), sats:dv.getUint8(13),
+           sacc:dv.getUint8(14), evSeq:dv.getUint8(15) };
+}
+function encodeData(p){
+  const dv = new DataView(new ArrayBuffer(16));
+  dv.setUint16(0,p.seq,true); dv.setUint32(2,p.utc,true); dv.setUint32(6,p.odo>>>0,true);
+  dv.setUint16(10,p.speed,true); dv.setUint8(12,p.flags); dv.setUint8(13,p.sats);
+  dv.setUint8(14,p.sacc); dv.setUint8(15,p.evSeq); return dv;
+}
+function decodeEvent(dv){
+  if (dv.byteLength < 10) throw new Error('EVENT prea scurt: ' + dv.byteLength);
+  return { seq:dv.getUint8(0), type:dv.getUint8(1), utc:dv.getUint32(2,true), odo:dv.getUint32(6,true) };
+}
+function encodeEvent(e){
+  const dv = new DataView(new ArrayBuffer(12));
+  dv.setUint8(0,e.seq); dv.setUint8(1,e.type); dv.setUint32(2,e.utc,true); dv.setUint32(6,e.odo>>>0,true);
+  dv.setUint16(10,0,true); return dv;
+}
+function encodeCmd(op, arg){
+  if (op === CMD.SET_AUTOSTART){ const dv=new DataView(new ArrayBuffer(5)); dv.setUint8(0,op); dv.setUint32(1,arg>>>0,true); return dv; }
+  if (op === CMD.REPLAY){ const dv=new DataView(new ArrayBuffer(2)); dv.setUint8(0,op); dv.setUint8(1,arg); return dv; }
+  if (op === CMD.SET_STOP){ const dv=new DataView(new ArrayBuffer(3)); dv.setUint8(0,op); dv.setUint16(1,arg,true); return dv; }
+  throw new Error('comandă necunoscută ' + op);
+}
+const signed32 = d => (d >= U32/2 ? d - U32 : d);      // diferență de odometru cu semn
+const modU32 = d => ((d % U32) + U32) % U32;
+
+/* ================= sursa: cutia prin Bluetooth ================= */
+class BleSource {
+  constructor(app){ this.app = app; this.device = null; this.chr = {}; this.want = false; this.retryMs = 1000; this.label = 'CUTIE'; }
+  static supported(){ return !!(navigator.bluetooth && navigator.bluetooth.requestDevice); }
+  async start(){
+    this.want = true;
+    if (!this.device){
+      this.device = await navigator.bluetooth.requestDevice({
+        filters: [{ services:[UUID.SERVICE] }, { namePrefix:'TSD-BOX' }],
+        optionalServices: [UUID.SERVICE] });
+      this.device.addEventListener('gattserverdisconnected', () => this.onDisconnect());
+    }
+    await this.connect();
+  }
+  async connect(){
+    this.app.setLink('conectare…', 'wait');
+    const server = await this.device.gatt.connect();
+    const svc = await server.getPrimaryService(UUID.SERVICE);
+    const [data, event, control, info] = await Promise.all(
+      [UUID.DATA, UUID.EVENT, UUID.CONTROL, UUID.INFO].map(u => svc.getCharacteristic(u)));
+    this.chr = { data, event, control, info };
+    try { this.app.onInfo(new TextDecoder().decode(await info.readValue())); } catch(e){ this.app.onInfo('(INFO necitit)'); }
+    event.addEventListener('characteristicvaluechanged', ev => this.app.onEventBytes(ev.target.value));
+    data.addEventListener('characteristicvaluechanged', ev => this.app.onDataBytes(ev.target.value));
+    await event.startNotifications();
+    await data.startNotifications();
+    this.retryMs = 1000;
+    this.app.setLink('OK', 'ok');
+    this.app.onConnected();
+  }
+  onDisconnect(){
+    this.chr = {};
+    if (!this.want){ this.app.setLink('deconectat', 'bad'); return; }
+    this.app.setLink('reconectare…', 'bad');
+    this.app.onLinkLost();
+    setTimeout(async () => {
+      if (!this.want) return;
+      try { await this.connect(); }
+      catch(e){ this.retryMs = Math.min(this.retryMs * 2, 5000); this.onDisconnect(); }
+    }, this.retryMs);
+  }
+  async send(dv){
+    if (!this.chr.control) throw new Error('cutia nu este conectată');
+    await this.chr.control.writeValueWithResponse(dv);
+  }
+  stop(){ this.want = false; try { if (this.device && this.device.gatt.connected) this.device.gatt.disconnect(); } catch(e){} }
+}
+
+/* ================= sursa: simulatorul de cutie ================= */
+// Produce exact aceleași pachete binare ca firmware-ul, deci testează și decodarea.
+class SimSource {
+  constructor(app){
+    this.app = app; this.label = 'SIMULATOR'; this.target = 50; this.v = 0; this.held = 0;
+    this.odo = 0; this.seq = 0; this.evSeq = 0; this.events = []; this.lostUntil = 0; this.lostStart = 0;
+    this.autostart = null; this.stopTh = 14; this.dropNext = false; this.timer = null; this.down = false;
+  }
+  static gauss(){ let u=0,v=0; while(!u) u=Math.random(); while(!v) v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+  utc(){ return Date.now() % DAY; }
+  start(){
+    this.app.setLink('simulat', 'ok');
+    this.app.onInfo('TSD-BOX;fw=sim-' + VERSION + ';proto=1');
+    this.app.onConnected();
+    this.timer = setInterval(() => this.tick(), 100);
+    this.emit(EV.BOOT, this.utc());
+  }
+  stop(){ clearInterval(this.timer); this.timer = null; }
+  tick(){
+    if (this.down) return;
+    const dt = 0.1, now = performance.now();
+    const tgt = this.target / 3.6;
+    this.v += Math.max(-3*dt, Math.min(2*dt, tgt - this.v));        // accelerare 2 m/s², frânare 3 m/s²
+    let meas = this.v > 0.3 ? this.v + 0.05*SimSource.gauss() : Math.abs(0.06*SimSource.gauss());
+    let flags = FLAG.TIME | FLAG.PPS;
+    const lost = now < this.lostUntil;
+    if (!lost){ flags |= FLAG.FIX; this.held = meas; }
+    else if (now - this.lostStart < 30000){ flags |= FLAG.EST; meas = this.held; }   // max 30 s fără semnal
+    else { meas = 0; }
+    meas = Math.max(0, meas);
+    const cms = Math.round(meas * 100);
+    if (cms < this.stopTh) flags |= FLAG.STOP;
+    else if (meas > 0) this.odo = modU32(this.odo + Math.round(meas * dt * 1000));
+    const utc = Math.floor(this.utc() / 100) * 100;
+    if (this.autostart !== null){
+      flags |= FLAG.ARMED;
+      if (utc >= this.autostart && utc - this.autostart < 5000){ const at = this.autostart; this.autostart = null; flags &= ~FLAG.ARMED; this.emit(EV.AUTOSTART, at); }
+    }
+    this.seq = (this.seq + 1) & 0xffff;
+    const p = { seq:this.seq, utc, odo:this.odo, speed:Math.min(65535,cms), flags,
+                sats: lost ? 0 : 22 + Math.round(Math.random()*4), sacc: lost ? 255 : 6 + Math.round(Math.random()*4), evSeq:this.evSeq };
+    this.app.onDataBytes(encodeData(p));
+  }
+  emit(type, utc){
+    this.evSeq = this.evSeq % 255 + 1;
+    const e = { seq:this.evSeq, type, utc, odo:this.odo };
+    this.events.push(e); if (this.events.length > 32) this.events.shift();
+    if (this.dropNext){ this.dropNext = false; return; }                 // eveniment „pierdut” intenționat
+    this.app.onEventBytes(encodeEvent(e));
+  }
+  button(){ this.emit(EV.BUTTON, this.utc()); }
+  loseSignal(s){ this.lostStart = performance.now(); this.lostUntil = this.lostStart + s*1000; }
+  reboot(){
+    this.down = true; this.app.setLink('cutie repornită…', 'bad');
+    setTimeout(() => {
+      this.odo = 0; this.seq = 0; this.evSeq = 0; this.events = []; this.autostart = null; this.down = false;
+      this.app.setLink('simulat', 'ok'); this.emit(EV.BOOT, this.utc());
+    }, 1500);
+  }
+  async send(dv){
+    const op = dv.getUint8(0);
+    if (op === CMD.SET_AUTOSTART){ const t = dv.getUint32(1,true); this.autostart = (t === 0xffffffff) ? null : t; }
+    else if (op === CMD.REPLAY){ const from = dv.getUint8(1); for (const e of this.events) if (e.seq >= from) this.app.onEventBytes(encodeEvent(e)); }
+    else if (op === CMD.SET_STOP){ this.stopTh = dv.getUint16(1,true); }
+  }
+}
+
+/* ================= starea aplicației ================= */
+const S = {
+  src:null, last:null, lastAt:0, t:null,
+  dayOffset:0, lastUtc:null,
+  odoRaw:null, odoTotal:0,                // mm, continuu peste reporniri
+  pkt:{ count:0, lost:0, lastSeq:null, times:[] },
+  lastEvSeq:null, seenEv:new Set(), replayAt:0, replayTries:0,
+  info:'', evlog:[], clockOffset:0,
+  autostartT:null,                         // timp continuu (ms) programat
+  stage:{ running:false, start:null, seg:null, restarts:0 },
+};
+const $ = id => document.getElementById(id);
+
+const App = {
+  setLink(txt, state){ const el=$('stBle'); el.textContent = txt; el.className = state==='ok'?'st-ok':state==='bad'?'st-bad':''; },
+  onInfo(s){ S.info = s; },
+  onConnected(){ S.replayTries = 0; },          // după reconectare, ev_seq diferit declanșează REPLAY
+  onLinkLost(){},
+
+  contT(utc){                                   // ora UTC a zilei → timp continuu, cu trecere peste miezul nopții
+    if (S.lastUtc !== null){
+      if (utc < S.lastUtc - DAY/2) S.dayOffset += DAY;
+      else if (utc > S.lastUtc + DAY/2) S.dayOffset -= DAY;
+    }
+    S.lastUtc = utc; return S.dayOffset + utc;
+  },
+  evT(utc){                                     // ora unui eveniment, cea mai apropiată de timpul curent
+    const base = S.t !== null ? S.t : S.dayOffset + utc;
+    let best = null;
+    for (const off of [S.dayOffset - DAY, S.dayOffset, S.dayOffset + DAY]){
+      const c = off + utc; if (best === null || Math.abs(c - base) < Math.abs(best - base)) best = c;
+    }
+    return best;
+  },
+
+  onDataBytes(dv){
+    let p; try { p = decodeData(dv); } catch(e){ this.log('eroare DATA: ' + e.message); return; }
+    const now = performance.now();
+    const k = S.pkt; k.count++; k.times.push(now); while (k.times.length && now - k.times[0] > 2000) k.times.shift();
+    if (k.lastSeq !== null){ const gap = (p.seq - k.lastSeq - 1 + 65536) % 65536; if (gap > 0 && gap < 1000) k.lost += gap; }
+    k.lastSeq = p.seq;
+    if (p.flags & FLAG.TIME) S.t = this.contT(p.utc);
+    // odometru: doar diferențe modulo 2^32; un salt înapoi înseamnă cutie repornită
+    if (S.odoRaw === null) S.odoRaw = p.odo;
+    else { const d = signed32(modU32(p.odo - S.odoRaw)); if (d >= 0) S.odoTotal += d; S.odoRaw = p.odo; }
+    S.last = p; S.lastAt = now;
+    // evenimente pierdute?
+    // REPLAY: întâi de la următorul așteptat, apoi tot bufferul (cutie repornită), apoi renunță
+    if (S.lastEvSeq === null) S.lastEvSeq = p.evSeq;
+    else if (p.evSeq === S.lastEvSeq) S.replayTries = 0;
+    else if (now - S.replayAt > 1000){
+      S.replayAt = now;
+      if (S.replayTries === 0){ const from = S.lastEvSeq % 255 + 1; this.log('lipsește evenimentul ' + from + ' → REPLAY'); this.send(encodeCmd(CMD.REPLAY, from)); }
+      else if (S.replayTries === 1){ this.log('REPLAY complet (posibil cutie repornită)'); this.send(encodeCmd(CMD.REPLAY, 1)); }
+      else { this.log('evenimente nerecuperate; continuu de la #' + p.evSeq); S.lastEvSeq = p.evSeq; S.replayTries = -1; }
+      S.replayTries++;
+    }
+  },
+
+  onEventBytes(dv){
+    let e; try { e = decodeEvent(dv); } catch(err){ this.log('eroare EVENT: ' + err.message); return; }
+    const key = e.type === EV.BOOT ? 'b' + e.utc : e.seq + ':' + e.utc;
+    if (S.seenEv.has(key)) return; S.seenEv.add(key);
+    S.lastEvSeq = e.seq; S.replayTries = 0;
+    const t = this.evT(e.utc);
+    if (e.type === EV.BOOT){
+      S.odoRaw = null;                          // următorul pachet devine noua bază; distanța totală se păstrează
+      this.log('#' + e.seq + ' PORNIRE CUTIE  ' + fmtClock(this.local(t), true));
+      if (S.autostartT !== null && S.autostartT > (S.t || 0)){ this.sendAutostart(S.autostartT); this.log('autostart retrimis'); }
+      return;
+    }
+    const odo = this.odoAtRaw(e.odo);
+    this.log('#' + e.seq + ' ' + EV_NAME[e.type] + '  ' + fmtClock(this.local(t), true) + '  odo ' + (e.odo/1000).toFixed(1) + ' m');
+    if (e.type === EV.AUTOSTART){ S.autostartT = null; this.press(t, odo, 'autostart'); }
+    if (e.type === EV.BUTTON) this.press(t, odo, 'buton cutie');
+  },
+  odoAtRaw(raw){ return S.odoRaw === null ? S.odoTotal : S.odoTotal + signed32(modU32(raw - S.odoRaw)); },
+
+  nowT(){ if (S.t === null) return null; return S.t + Math.min(performance.now() - S.lastAt, 1500); },
+  nowOdo(){
+    if (!S.last) return S.odoTotal;
+    const moving = !(S.last.flags & FLAG.STOP);
+    return S.odoTotal + (moving ? S.last.speed * 10 * Math.min(performance.now() - S.lastAt, 1000) / 1000 : 0);  // cm/s → mm/s
+  },
+  local(t){ return modDay(t - new Date().getTimezoneOffset()*60000 + S.clockOffset); },
+
+  press(t, odo, how){
+    const st = S.stage;
+    if (!st.running){ st.running = true; st.start = { t, odo }; st.seg = { t, odo }; st.restarts = 0; this.toast('START (' + how + ')'); }
+    else { st.seg = { t, odo }; st.restarts++; this.toast('RESTART ' + st.restarts + ' (' + how + ')'); }
+  },
+  async send(dv){
+    if (!S.src){ this.toast('Nicio sursă conectată'); return; }
+    try { await S.src.send(dv); } catch(e){ this.toast('Comandă eșuată: ' + e.message); }
+  },
+  sendAutostart(t){ return this.send(encodeCmd(CMD.SET_AUTOSTART, modDay(t))); },
+  log(s){ S.evlog.unshift(s); if (S.evlog.length > 60) S.evlog.pop(); },
+  toast(s){ const el=$('toast'); el.textContent=s; el.classList.add('on'); clearTimeout(this._tt); this._tt=setTimeout(()=>el.classList.remove('on'),1800); },
+};
+
+/* ================= formatare ================= */
+const modDay = t => ((t % DAY) + DAY) % DAY;
+function fmtClock(ms, withMs){
+  const h=Math.floor(ms/3600000), m=Math.floor(ms/60000)%60, s=Math.floor(ms/1000)%60;
+  const base = String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  return withMs ? base + '.' + String(Math.floor(ms%1000)).padStart(3,'0') : base;
+}
+function fmtDur(ms){                                      // H:MM:SS.z
+  if (ms < 0) ms = 0;
+  const z = Math.floor(ms/100) % 10, s = Math.floor(ms/1000);
+  return Math.floor(s/3600) + ':' + String(Math.floor(s/60)%60).padStart(2,'0') + ':' + String(s%60).padStart(2,'0') + '.' + z;
+}
+const fmtKm = mm => (mm/1e6).toFixed(3);
+function fmtAvg(mm, ms){ return ms < 1000 ? '—' : ((mm/1000)/(ms/1000)*3.6).toFixed(2); }
+function flagNames(f){ return Object.entries(FLAG).filter(([,b]) => f & b).map(([n]) => n).join(' ') || '—'; }
+
+/* ================= afișare ================= */
+function render(){
+  const t = App.nowT(), p = S.last, fresh = p && performance.now() - S.lastAt < 1500;
+  $('clock').textContent = t === null ? '--:--:--' : fmtClock(App.local(t));
+  $('stSrc').textContent = S.src ? S.src.label : '—';
+  const g = $('stGps');
+  if (!fresh){ g.textContent = S.src ? 'fără date' : '—'; g.className = S.src ? 'st-bad' : ''; }
+  else if (p.flags & FLAG.FIX){ g.textContent = 'FIX · ' + p.sats + ' sat'; g.className = 'st-ok'; }
+  else if (p.flags & FLAG.EST){ g.textContent = 'EST'; g.className = 'st-bad'; }
+  else { g.textContent = 'fără fix'; g.className = 'st-bad'; }
+  $('stArm').innerHTML = (fresh && (p.flags & FLAG.ARMED) && S.autostartT !== null) ? 'Autostart: <b>' + fmtClock(App.local(S.autostartT)) + '</b>' : '';
+  $('vInst').textContent = fresh ? (p.speed * 0.036).toFixed(1) : '—';
+
+  const st = S.stage;
+  if (st.running && t !== null){
+    const odo = App.nowOdo();
+    const tg = t - st.start.t, ti = t - st.seg.t, dg = odo - st.start.odo, di = odo - st.seg.odo;
+    $('tGen').textContent = fmtDur(tg); $('tInt').textContent = fmtDur(ti);
+    $('dGen').textContent = fmtKm(dg);  $('dInt').textContent = fmtKm(di);
+    $('vmGen').textContent = fmtAvg(dg, tg); $('vmInt').textContent = fmtAvg(di, ti);
+    $('startTxt').textContent = 'RESTART'; $('startSub').textContent = 'segment ' + (st.restarts + 1);
+  } else {
+    for (const id of ['tGen','tInt','dGen','dInt','vmGen','vmInt']) $(id).textContent = '—';
+    $('startTxt').textContent = 'START'; $('startSub').textContent = 'RESTART';
+  }
+  $('tDev').textContent = '—'; $('dDev').textContent = '—';
+  $('devText').textContent = ''; $('devFill').style.width = '0';
+
+  if ($('panel').classList.contains('open')) renderPanel(t);
+}
+function renderPanel(t){
+  const p = S.last;
+  const rows = p ? [
+    ['seq', p.seq], ['utc_ms', p.utc + '  (' + fmtClock(p.utc, true) + ' UTC)'],
+    ['odo_mm', p.odo + '  (' + (p.odo/1000).toFixed(1) + ' m)'],
+    ['speed_cms', p.speed + '  (' + (p.speed*0.036).toFixed(2) + ' km/h)'],
+    ['flags', p.flags + '  ' + flagNames(p.flags)], ['sats', p.sats], ['sacc_cms', p.sacc], ['ev_seq', p.evSeq],
+  ] : [['—','niciun pachet']];
+  $('rawTbl').innerHTML = rows.map(r => '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>').join('');
+  const k = S.pkt;
+  const link = [
+    ['sursă', S.src ? S.src.label : '—'], ['INFO', S.info || '—'],
+    ['rată', (k.times.length/2).toFixed(1) + ' pachete/s'], ['primite', k.count], ['pierdute', k.lost],
+    ['vârsta ultimului', p ? Math.round(performance.now() - S.lastAt) + ' ms' : '—'],
+    ['distanță totală', (S.odoTotal/1000).toFixed(1) + ' m'],
+  ];
+  $('linkTbl').innerHTML = link.map(r => '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>').join('');
+  $('evlist').textContent = S.evlog.join('\n') || '(niciun eveniment)';
+}
+
+/* ================= comenzi din interfață ================= */
+function stopSource(){ if (S.src){ S.src.stop(); S.src = null; } App.setLink('—', ''); $('simCtl').style.display = 'none'; }
+function resetLinkState(){ S.last = null; S.t = null; S.lastUtc = null; S.dayOffset = 0; S.odoRaw = null;
+  S.pkt = { count:0, lost:0, lastSeq:null, times:[] }; S.lastEvSeq = null; S.seenEv.clear(); }
+
+$('bleBtn').onclick = async () => {
+  if (!BleSource.supported()){ App.toast('Bluetooth web nu e disponibil aici (folosește Chrome pe Android)'); return; }
+  stopSource(); resetLinkState();
+  const b = new BleSource(App); S.src = b;
+  try { await b.start(); $('panel').classList.remove('open'); }
+  catch(e){ S.src = null; App.setLink('—',''); App.toast(e.name === 'NotFoundError' ? 'Nicio cutie aleasă' : 'Eroare: ' + e.message); }
+};
+$('discBtn').onclick = () => { stopSource(); App.toast('Deconectat'); };
+$('simBtn').onclick = () => {
+  stopSource(); resetLinkState();
+  const s = new SimSource(App); S.src = s; s.target = +$('simSpd').value; s.start();
+  $('simCtl').style.display = 'block'; App.toast('Simulator pornit');
+};
+$('simSpd').oninput = e => { $('simSpdTxt').textContent = e.target.value; if (S.src instanceof SimSource) S.src.target = +e.target.value; };
+$('simBtnBox').onclick = () => S.src instanceof SimSource && S.src.button();
+$('simLost10').onclick = () => S.src instanceof SimSource && S.src.loseSignal(10);
+$('simLost40').onclick = () => S.src instanceof SimSource && S.src.loseSignal(40);
+$('simReboot').onclick = () => S.src instanceof SimSource && S.src.reboot();
+$('simDropEv').onchange = e => { if (S.src instanceof SimSource) S.src.dropNext = e.target.checked; e.target.checked = false; };
+
+$('startBtn').onclick = () => {
+  const t = App.nowT();
+  if (t === null){ App.toast('Fără timp GPS: conectează cutia sau simulatorul'); return; }
+  App.press(t, App.nowOdo(), 'ecran'); App.log('START/RESTART de pe ecran  ' + fmtClock(App.local(t), true));
+};
+$('resetBtn').onclick = () => {
+  if (!S.stage.running) return;
+  if (confirm('RESET: aduci proba la zero?')){ S.stage = { running:false, start:null, seg:null, restarts:0 }; App.toast('Probă resetată'); }
+};
+for (const id of ['backBtn','m10Btn','p10Btn','modeBtn','kBtn']) $(id).onclick = () => App.toast('Vine la pasul 5');
+$('vimp').addEventListener('change', e => { const v = parseFloat(String(e.target.value).replace(',','.')); e.target.value = isFinite(v) && v > 0 ? v.toFixed(1) : ''; });
+
+function parseLocal(str){                                    // „HH:MM:SS” local → timp continuu UTC (ms)
+  const m = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(str.trim()); if (!m) return null;
+  const localMs = ((+m[1])*3600 + (+m[2])*60 + (+(m[3]||0))) * 1000;
+  let utc = modDay(localMs + new Date().getTimezoneOffset()*60000 - S.clockOffset);
+  const now = App.nowT(); if (now === null) return null;
+  let t = S.dayOffset + utc; while (t < now - 60000) t += DAY; while (t > now + DAY) t -= DAY;
+  return t;
+}
+$('asSend').onclick = () => {
+  const t = parseLocal($('asTime').value);
+  if (t === null){ App.toast('Oră invalidă sau fără timp GPS'); return; }
+  S.autostartT = t; App.sendAutostart(t); App.toast('Autostart trimis: ' + fmtClock(App.local(t)));
+};
+$('asCancel').onclick = () => { S.autostartT = null; App.send(encodeCmd(CMD.SET_AUTOSTART, 0xffffffff)); App.toast('Autostart anulat'); };
+$('rpSend').onclick = () => App.send(encodeCmd(CMD.REPLAY, Math.max(1, Math.min(255, parseInt($('rpSeq').value) || 1))));
+$('thSend').onclick = () => App.send(encodeCmd(CMD.SET_STOP, Math.max(0, Math.min(65535, parseInt($('thVal').value) || 14))));
+
+$('menuBtn').onclick = () => $('panel').classList.add('open');
+$('closePanel').onclick = () => $('panel').classList.remove('open');
+for (const b of document.querySelectorAll('#tabs button[data-tab]')) b.onclick = () => {
+  document.querySelectorAll('#tabs button[data-tab]').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x.id === b.dataset.tab));
+};
+function setTheme(th){ document.documentElement.dataset.theme = th; try { localStorage.setItem('tsd-theme', th); } catch(e){} }
+try { setTheme(localStorage.getItem('tsd-theme') || 'day'); } catch(e){ setTheme('day'); }
+$('themeBtn').onclick = () => setTheme(document.documentElement.dataset.theme === 'night' ? 'day' : 'night');
+$('fsBtn').onclick = async () => {
+  try { await document.documentElement.requestFullscreen(); await screen.orientation.lock('landscape'); } catch(e){}
+};
+$('ver').textContent = VERSION;
+$('bleNote').textContent = BleSource.supported() ? 'Cutia trebuie să fie alimentată; alegi „TSD-BOX” din listă.'
+  : 'Bluetooth web nu e disponibil în acest browser. Folosește Chrome pe Android (sau simulatorul).';
+
+/* ================= ecran aprins, baterie, offline ================= */
+let wakeLock = null;
+async function keepAwake(){ try { if ('wakeLock' in navigator && !wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => wakeLock = null); } } catch(e){} }
+document.addEventListener('pointerdown', keepAwake);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') keepAwake(); });
+if (navigator.getBattery) navigator.getBattery().then(b => {
+  const upd = () => $('stBat').textContent = Math.round(b.level*100) + '%' + (b.charging ? '⚡' : '');
+  upd(); b.addEventListener('levelchange', upd); b.addEventListener('chargingchange', upd);
+});
+if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+setInterval(render, 50);
+render();
+window.TSD = { S, App, decodeData, encodeData, decodeEvent, encodeEvent, encodeCmd, SimSource };   // pentru teste
+</script>
+</body>
+</html>
