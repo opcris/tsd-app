@@ -302,7 +302,7 @@ table.raw td:first-child{color:var(--mute)}
       <h3>About</h3>
       <p>TSD Rally · version <b id="ver"></b> · protocol 1</p>
       <p>© 2026 Cristian Popa · <a href="mailto:op_cris@yahoo.com">op_cris@yahoo.com</a></p>
-      <p class="note">Licence: <a href="https://polyformproject.org/licenses/noncommercial/1.0.0" target="_blank" rel="noopener">PolyForm Noncommercial 1.0.0</a>. Free for noncommercial use; commercial use only with the author's permission. No warranty. <span id="srcLink"></span></p>
+      <p class="note">Licence: <a href="https://polyformproject.org/licenses/noncommercial/1.0.0" target="_blank" rel="noopener">PolyForm Noncommercial 1.0.0</a>. Free for noncommercial use; commercial use only with the author's permission. No warranty.</p>
       <p class="note">Deviation: plus = late, minus = early. The stage is saved automatically and resumes if the app closes.</p>
     </div>
   </div>
@@ -1430,9 +1430,6 @@ if (navigator.storage && navigator.storage.persist) navigator.storage.persist().
 if (restoreStage()){ App.toast('Stage resumed: pick the source (☰ → Source)'); App.log('stage resumed after the app restarted'); }
 setInterval(tick, 50);
 render();
-(() => { const h = location.hostname, seg = location.pathname.split('/').filter(Boolean)[0];
-  if (h.endsWith('.github.io') && seg){ const u = 'https://github.com/' + h.split('.')[0] + '/' + seg;
-    $('srcLink').innerHTML = 'Source code: <a href="' + u + '" target="_blank" rel="noopener">' + u.replace('https://', '') + '</a>'; } })();
 window.TSD = { S, App, Engine, PhoneGPS, PhoneSource, SimSource, Log, DB, Sound, decodeData, encodeData, decodeEvent, encodeEvent, encodeCmd, saveStage, restoreStage, hav, parseDuration, parseClock, countdown };
 </script>
 </body>

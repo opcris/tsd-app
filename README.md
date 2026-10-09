@@ -28,7 +28,7 @@ Address: `https://YOUR-NAME.github.io/tsd-app/`. On the phone: Chrome → **⋮ 
   - **False start:** arm the time stage again (☰ → Stage → Time stage); the next MARK restarts it from zero.
   - Before START: arm it and START starts the session and the time stage together.
   - Speed stage button is refused while a time stage runs (MARK ends it first); with a time stage armed but not started, it cancels the arming.
-- **Author and licence** (PolyForm Noncommercial) in ☰ → Settings → About, with a link to the source code on GitHub.
+- **Author and licence** (PolyForm Noncommercial) in ☰ → Settings → About.
 
 ## New in 0.7.0
 
