@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ro">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -114,36 +114,49 @@ table.raw td:first-child{color:var(--mute)}
 .loglist td{border-bottom:1px solid var(--line);padding:4px 6px;vertical-align:middle}
 .loglist button.s{padding:5px 8px;font-size:13px;margin:2px}
 #stGps.st-est,#stSrc.st-est{color:var(--early)!important}
+.tab .row2{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:4px 0}
+.big2{font-size:22px;font-weight:700}
+.loglist{width:100%;border-collapse:collapse;font-size:13px}
+.loglist td{border-bottom:1px solid var(--line);padding:4px 6px;vertical-align:middle}
+.loglist button.s{padding:5px 8px;font-size:13px;margin:2px}
+#stGps.st-est,#stSrc.st-est{color:var(--early)!important}
+#dLeftWrap{margin-left:auto;display:none;flex-direction:column;align-items:flex-end;line-height:1;align-self:center}
+#dLeftWrap .lbl{min-width:0;font-size:clamp(10px,3vh,15px)}
+.ttTag{color:var(--edit-ink);background:var(--edit);border-radius:4px;padding:0 6px;font-weight:700}
+.calc{display:grid;grid-template-columns:auto auto auto;gap:6px 10px;align-items:center;margin:6px 0}
+.calc input{width:8.5em;font-size:20px}
+.calc input.computed{background:var(--edit);color:var(--edit-ink);font-style:italic}
+.warn{color:var(--warn);font-weight:600}
 </style>
 </head>
 <body>
 <div id="app">
   <div id="status" class="num">
     <span id="clock">--:--:--</span>
-    <span>Sursă: <b id="stSrc">—</b></span>
+    <span>Source: <b id="stSrc">—</b></span>
     <span>GPS: <b id="stGps">—</b></span>
     <span>BLE: <b id="stBle">—</b></span>
     <span id="stArm"></span>
     <span>Bat: <b id="stBat">—</b></span>
-    <button id="menuBtn" aria-label="Meniu">☰</button>
+    <button id="menuBtn" aria-label="Menu">☰</button>
   </div>
 
   <div id="main">
     <div class="col">
       <div class="row"><span class="lbl">T_gen</span><span class="val num" id="tGen">—</span></div>
-      <div class="row"><span class="lbl">T_int</span><span class="val num" id="tInt">—</span></div>
+      <div class="row"><span class="lbl" id="tIntLbl">T_int</span><span class="val num" id="tInt">—</span></div>
       <div class="pair">
         <span class="lbl">D_gen</span><span class="val md num" id="dGen">—</span>
         <span class="lbl">Vm_gen</span><span class="val md num" id="vmGen">—</span>
         <span class="lbl">D_int</span><span class="val md num" id="dInt">—</span>
         <span class="lbl">Vm_int</span><span class="val md num" id="vmInt">—</span>
       </div>
-      <div class="unit">distanțe în km, viteze în km/h</div>
+      <div class="unit">distances in km, speeds in km/h</div>
       <div class="spacer"></div>
       <div class="btns">
         <button class="b" id="resetBtn">RESET</button>
         <button class="b" id="m10Btn">−10 m</button>
-        <button class="b" id="startBtn"><span class="big" id="startTxt">START</span><span class="sub" id="startSub">apoi MARK</span></button>
+        <button class="b" id="startBtn"><span class="big" id="startTxt">START</span><span class="sub" id="startSub">then MARK</span></button>
         <button class="b" id="backBtn">BACK</button>
         <button class="b" id="p10Btn">+10 m</button>
       </div>
@@ -152,14 +165,15 @@ table.raw td:first-child{color:var(--mute)}
     <div class="col">
       <div>
         <div id="devbar"><div id="devFill"></div><div id="devMarker"></div><div id="devText" class="num"></div></div>
-        <div id="devHint"><span class="l">întârziere</span><span class="r">avans</span></div>
+        <div id="devHint"><span class="l">late</span><span class="r">early</span></div>
       </div>
       <div class="row"><span class="lbl">V_imp</span><input id="vimp" class="vimp num" inputmode="decimal" placeholder="00.0" autocomplete="off"><span class="unit">km/h</span></div>
       <div class="row"><span class="lbl">V_inst</span><span class="val lg num" id="vInst">—</span></div>
-      <div class="row"><span class="lbl">D_dev</span><span class="val lg num" id="dDev">—</span><span class="unit">km</span></div>
+      <div class="row"><span class="lbl">D_dev</span><span class="val lg num" id="dDev">—</span><span class="unit">km</span>
+        <span id="dLeftWrap"><span class="lbl">D_left</span><span class="val md num" id="dLeft">—</span></span></div>
       <div class="spacer"></div>
       <div class="btns2">
-        <button class="b" id="modeBtn">Abatere: PROBĂ</button>
+        <button class="b" id="modeBtn">Deviation: SEGMENT</button>
         <button class="b" id="kBtn">k = 1.0000</button>
       </div>
     </div>
@@ -169,106 +183,125 @@ table.raw td:first-child{color:var(--mute)}
 <div id="panel">
   <div id="sheet">
     <div id="tabs">
-      <button data-tab="tSrc" class="on">Sursă</button>
-      <button data-tab="tStage">Probă</button>
-      <button data-tab="tLogs">Loguri</button>
-      <button data-tab="tRaw">Date brute</button>
-      <button data-tab="tSet">Setări</button>
-      <button class="x" id="closePanel" aria-label="Închide">✕</button>
+      <button data-tab="tSrc" class="on">Source</button>
+      <button data-tab="tStage">Stage</button>
+      <button data-tab="tLogs">Logs</button>
+      <button data-tab="tRaw">Raw data</button>
+      <button data-tab="tSet">Settings</button>
+      <button class="x" id="closePanel" aria-label="Close">✕</button>
     </div>
 
     <div class="tab on" id="tSrc">
-      <h3>Cutia (Bluetooth)</h3>
-      <button class="s primary" id="bleBtn">Conectează cutia</button>
-      <button class="s" id="discBtn">Deconectează</button>
+      <h3>Box (Bluetooth)</h3>
+      <button class="s primary" id="bleBtn">Connect box</button>
+      <button class="s" id="discBtn">Disconnect</button>
       <label class="note" style="display:block;margin-top:6px"><input type="checkbox" id="backupChk" style="width:auto" checked>
-        GPS-ul telefonului în paralel: rezervă când cutia nu trimite date și înregistrare pentru comparație</label>
+        Phone GPS in parallel: backup when the box sends no data, and recorded for comparison</label>
       <div class="note" id="bleNote"></div>
-      <h3>Doar telefonul (fără cutie)</h3>
-      <button class="s primary" id="phoneBtn">Folosește GPS-ul telefonului</button>
-      <div class="note">Mai puțin precis decât cutia: aproximativ o citire pe secundă, viteză doar orizontală, timpul de pe ceasul telefonului (aliniază-l din Setări → Ceas).</div>
+      <h3>Phone only (no box)</h3>
+      <button class="s primary" id="phoneBtn">Use phone GPS</button>
+      <div class="note">Less precise than the box: about one reading per second, horizontal speed only, time from the phone clock (align it in Settings → Clock).</div>
+      <div class="note warn" id="geoHelp" style="display:none"></div>
       <h3>Simulator</h3>
-      <button class="s primary" id="simBtn">Pornește simulatorul</button>
+      <button class="s primary" id="simBtn">Start simulator</button>
       <div id="simCtl" style="display:none">
-        <p>Viteză țintă: <b id="simSpdTxt" class="num">50</b> km/h<br>
+        <p>Target speed: <b id="simSpdTxt" class="num">50</b> km/h<br>
           <input id="simSpd" type="range" min="0" max="130" step="1" value="50" style="width:min(520px,90%)"></p>
-        <button class="s" id="simBtnBox">Buton cutie</button>
-        <button class="s" id="simLost10">Semnal pierdut 10 s</button>
-        <button class="s" id="simLost40">Semnal pierdut 40 s</button>
-        <button class="s" id="simReboot">Repornire cutie</button>
-        <label class="note" style="display:block;margin-top:6px"><input type="checkbox" id="simDropEv" style="width:auto"> Pierde următorul eveniment (testează cererea REPLAY)</label>
+        <button class="s" id="simBtnBox">Box button</button>
+        <button class="s" id="simLost10">Signal lost 10 s</button>
+        <button class="s" id="simLost40">Signal lost 40 s</button>
+        <button class="s" id="simReboot">Reboot box</button>
+        <label class="note" style="display:block;margin-top:6px"><input type="checkbox" id="simDropEv" style="width:auto"> Drop the next event (tests the REPLAY request)</label>
       </div>
     </div>
 
     <div class="tab" id="tStage">
-      <h3>Autostart</h3>
-      <div class="row2">Ora de start (locală): <input id="asTime" placeholder="HH:MM:SS" inputmode="numeric">
-        <button class="s primary" id="asSend">Programează</button><button class="s" id="asCancel">Anulează</button></div>
+      <h3>Distance · time · average speed</h3>
+      <div class="note">Fill in any two; the third is calculated (highlighted).</div>
+      <div class="calc">
+        <span>Distance (km)</span><span>Time (hh.mm.ss)</span><span>Avg speed (km/h)</span>
+        <input id="cD" class="num" inputmode="decimal" placeholder="12.345" autocomplete="off">
+        <input id="cT" class="num" inputmode="decimal" placeholder="hh.mm.ss" autocomplete="off">
+        <input id="cV" class="num" inputmode="decimal" placeholder="48.00" autocomplete="off">
+      </div>
+      <div class="row2"><button class="s primary" id="speedStageBtn">Speed stage</button><button class="s primary" id="timeStageBtn">Time stage</button>
+        <span class="note" id="calcNote"></span></div>
+      <div class="note">Speed stage: the average speed becomes V_imp. Time stage: drive the distance in exactly the given time; T_int counts down to zero and D_left shows the distance to go.</div>
+      <h3>Start time</h3>
+      <div class="row2">Start time (local): <input id="asTime" placeholder="hh.mm.ss" inputmode="decimal" autocomplete="off">
+        <label><input type="checkbox" id="asAuto" style="width:auto" checked> start automatically</label>
+        <button class="s primary" id="asSend">Set</button><button class="s" id="asCancel">Cancel</button></div>
       <div class="note" id="asNote"></div>
-      <h3>Calibrare (tronsonul de etalonare)</h3>
-      <div class="note">Apeși „Început” la reperul de start al tronsonului și „Sfârșit” la reperul final, apoi introduci distanța oficială. Condu tronsonul pe aceeași trasă ca în probe.</div>
-      <div class="row2"><button class="s primary" id="calStart">Început</button><button class="s primary" id="calEnd">Sfârșit</button>
-        <span>Măsurat: <b class="num" id="calMeas">—</b> m</span></div>
-      <div class="row2">Distanța oficială (km): <input id="calOff" inputmode="decimal" placeholder="5,000">
-        <span>k = <b class="num big2" id="calK">—</b></span><button class="s" id="calApply">Aplică k</button></div>
+      <h3>Calibration (official calibration section)</h3>
+      <div class="note">Press “Begin” at the start mark of the section and “End” at the finish mark, then enter the official distance. Drive the section on the same line as in the stages.</div>
+      <div class="row2"><button class="s primary" id="calStart">Begin</button><button class="s primary" id="calEnd">End</button>
+        <span>Measured: <b class="num" id="calMeas">—</b> m</span></div>
+      <div class="row2">Official distance (km): <input id="calOff" inputmode="decimal" placeholder="5.000">
+        <span>k = <b class="num big2" id="calK">—</b></span><button class="s" id="calApply">Apply k</button></div>
     </div>
 
     <div class="tab" id="tLogs">
-      <div class="row2"><button class="s" id="logRefresh">Reîncarcă lista</button><button class="s" id="logDelAll">Șterge toate</button>
+      <div class="row2"><button class="s" id="logRefresh">Reload list</button><button class="s" id="logDelAll">Delete all</button>
         <span class="note" id="logStore"></span></div>
-      <div class="note">Un log începe la START și se închide la RESET. „Evenimente” = apăsări și schimbări; „Continuu” = datele la fiecare citire (10 pe secundă cu cutia). CSV cu „;” și virgulă zecimală, pentru Excel în română.</div>
+      <div class="note">A log starts at START and closes at RESET. “Events” = presses and changes; “Continuous” = data at every reading (10 per second with the box). Number format: Settings → Logs.</div>
       <table class="loglist num" id="logTbl"></table>
     </div>
 
     <div class="tab" id="tRaw">
       <div class="grid2">
         <div>
-          <h3>Ultimul pachet DATA</h3>
+          <h3>Last DATA packet</h3>
           <table class="raw num" id="rawTbl"></table>
         </div>
         <div>
-          <h3>Legătura</h3>
+          <h3>Link</h3>
           <table class="raw num" id="linkTbl"></table>
-          <h3>Comenzi către cutie</h3>
-          <div>REPLAY de la ev_seq: <input id="rpSeq" inputmode="numeric" value="1"> <button class="s" id="rpSend">Trimite</button></div>
-          <div>Prag staționare (cm/s): <input id="thVal" inputmode="numeric" value="14"> <button class="s" id="thSend">Trimite</button></div>
+          <h3>Commands to the box</h3>
+          <div>REPLAY from ev_seq: <input id="rpSeq" inputmode="numeric" value="1"> <button class="s" id="rpSend">Send</button></div>
+          <div>Stationary threshold (cm/s): <input id="thVal" inputmode="numeric" value="14"> <button class="s" id="thSend">Send</button></div>
         </div>
       </div>
-      <h3>Evenimente</h3>
+      <h3>Events</h3>
       <div id="evlist"></div>
     </div>
 
     <div class="tab" id="tSet">
-      <h3>Ceas</h3>
-      <div class="note">Offsetul se adaugă la ora GPS. Pune time.is pe alt telefon lângă aplicație și ajustează până când secunda se schimbă odată.</div>
+      <h3>Clock</h3>
+      <div class="note">The offset is added to the GPS time. Put time.is on another phone next to the app and adjust until the seconds change together.</div>
       <div class="row2"><span class="num" id="setClock" style="font-size:clamp(34px,13vh,64px);font-weight:800;background:var(--edit);color:var(--edit-ink);padding:0 10px;border-radius:8px">--:--:--.-</span>
         <span class="note" id="setClockRaw"></span></div>
-      <div class="row2"><button class="s" data-off="-1000">−1 s</button><button class="s" data-off="-100">−0,1 s</button>
-        <span class="big2 num" id="offTxt">+0,0 s</span>
-        <button class="s" data-off="100">+0,1 s</button><button class="s" data-off="1000">+1 s</button><button class="s" data-off="0">0</button></div>
-      <h3>Clicker Bluetooth</h3>
-      <div class="row2">Tasta START/MARK: <b class="num" id="clkKey">neînvățată</b>
-        <button class="s primary" id="clkLearn">Învață tasta</button><button class="s" id="clkForget">Uită</button></div>
-      <div class="note">Ultima tastă primită: <b class="num" id="clkLast">—</b>. Test de întârziere: apeși clickerul și START de pe ecran deodată; diferența apare în ☰ → Date brute → Evenimente.</div>
-      <h3>Afișaj</h3>
-      <button class="s" id="themeBtn">Temă: zi / noapte</button>
-      <button class="s" id="fsBtn">Ecran complet</button>
-      <h3>Despre</h3>
-      <p>TSD Rally · versiunea <b id="ver"></b> · protocol 1</p>
-      <p class="note">Abaterea: plus = întârziere, minus = avans. Proba se salvează automat și se reia dacă aplicația se închide.</p>
+      <div class="row2"><button class="s" data-off="-1000">−1 s</button><button class="s" data-off="-100">−0.1 s</button>
+        <span class="big2 num" id="offTxt">+0.0 s</span>
+        <button class="s" data-off="100">+0.1 s</button><button class="s" data-off="1000">+1 s</button><button class="s" data-off="0">0</button></div>
+      <h3>Sound</h3>
+      <label><input type="checkbox" id="soundChk" style="width:auto" checked> Beeps: last 10 s before the start time and before the end of a time stage, long beep at zero</label>
+      <button class="s" id="soundTest">Test</button>
+      <h3>Bluetooth clicker</h3>
+      <div class="row2">START/MARK key: <b class="num" id="clkKey">not learned</b>
+        <button class="s primary" id="clkLearn">Learn key</button><button class="s" id="clkForget">Forget</button></div>
+      <div class="note">Last key received: <b class="num" id="clkLast">—</b>. Delay test: press the clicker and the on-screen START together; the difference shows in ☰ → Raw data → Events.</div>
+      <h3>Logs</h3>
+      <div class="row2">CSV format: <label><input type="radio" name="csvFmt" value="eu" style="width:auto"> Excel EU ( ; and 0,5 )</label>
+        <label><input type="radio" name="csvFmt" value="std" style="width:auto"> Standard ( , and 0.5 )</label></div>
+      <h3>Display</h3>
+      <button class="s" id="themeBtn">Theme: day / night</button>
+      <button class="s" id="fsBtn">Full screen</button>
+      <h3>About</h3>
+      <p>TSD Rally · version <b id="ver"></b> · protocol 1</p>
+      <p class="note">Deviation: plus = late, minus = early. The stage is saved automatically and resumes if the app closes.</p>
     </div>
   </div>
 </div>
 <div id="numDlg"><div class="box"><div id="numTitle"></div>
   <input id="numInput" class="num" inputmode="decimal" autocomplete="off">
-  <div><button class="s" id="numCancel">Renunță</button><button class="s primary" id="numOk">OK</button></div></div></div>
+  <div><button class="s" id="numCancel">Cancel</button><button class="s primary" id="numOk">OK</button></div></div></div>
 <div id="toast"></div>
-<div id="rotate">Rotește telefonul în poziție orizontală.</div>
+<div id="rotate">Turn the phone to landscape.</div>
 <script>
 'use strict';
-const VERSION = '0.6.3';
+const VERSION = '0.7.0';
 
-/* ================= protocol (specificații v1.3, secțiunea 10) ================= */
+/* ================= protocol (spec v1.3, section 10) ================= */
 const UUID = {
   SERVICE: 'fc00383f-4457-4f18-b29c-15c465b30396',
   DATA:    '6968dd9b-d56f-4bc8-9b4c-f1f2edfdd193',
@@ -278,12 +311,12 @@ const UUID = {
 };
 const FLAG = { FIX:1, EST:2, STOP:4, ARMED:8, PPS:16, TIME:32 };
 const EV = { BUTTON:1, AUTOSTART:2, BOOT:3 };
-const EV_NAME = { 1:'BUTON', 2:'AUTOSTART', 3:'PORNIRE CUTIE' };
+const EV_NAME = { 1:'BUTTON', 2:'AUTOSTART', 3:'BOX BOOT' };
 const CMD = { SET_AUTOSTART:1, REPLAY:2, SET_STOP:3 };
 const DAY = 86400000, U32 = 4294967296;
 
 function decodeData(dv){
-  if (dv.byteLength < 16) throw new Error('DATA prea scurt: ' + dv.byteLength);
+  if (dv.byteLength < 16) throw new Error('DATA too short: ' + dv.byteLength);
   return { seq:dv.getUint16(0,true), utc:dv.getUint32(2,true), odo:dv.getUint32(6,true),
            speed:dv.getUint16(10,true), flags:dv.getUint8(12), sats:dv.getUint8(13),
            sacc:dv.getUint8(14), evSeq:dv.getUint8(15) };
@@ -295,7 +328,7 @@ function encodeData(p){
   dv.setUint8(14,p.sacc); dv.setUint8(15,p.evSeq); return dv;
 }
 function decodeEvent(dv){
-  if (dv.byteLength < 10) throw new Error('EVENT prea scurt: ' + dv.byteLength);
+  if (dv.byteLength < 10) throw new Error('EVENT too short: ' + dv.byteLength);
   return { seq:dv.getUint8(0), type:dv.getUint8(1), utc:dv.getUint32(2,true), odo:dv.getUint32(6,true) };
 }
 function encodeEvent(e){
@@ -307,14 +340,14 @@ function encodeCmd(op, arg){
   if (op === CMD.SET_AUTOSTART){ const dv=new DataView(new ArrayBuffer(5)); dv.setUint8(0,op); dv.setUint32(1,arg>>>0,true); return dv; }
   if (op === CMD.REPLAY){ const dv=new DataView(new ArrayBuffer(2)); dv.setUint8(0,op); dv.setUint8(1,arg); return dv; }
   if (op === CMD.SET_STOP){ const dv=new DataView(new ArrayBuffer(3)); dv.setUint8(0,op); dv.setUint16(1,arg,true); return dv; }
-  throw new Error('comandă necunoscută ' + op);
+  throw new Error('unknown command ' + op);
 }
-const signed32 = d => (d >= U32/2 ? d - U32 : d);      // diferență de odometru cu semn
+const signed32 = d => (d >= U32/2 ? d - U32 : d);      // signed odometer difference
 const modU32 = d => ((d % U32) + U32) % U32;
 
 /* ================= sursa: cutia prin Bluetooth ================= */
 class BleSource {
-  constructor(app){ this.app = app; this.device = null; this.chr = {}; this.want = false; this.retryMs = 1000; this.label = 'CUTIE'; }
+  constructor(app){ this.app = app; this.device = null; this.chr = {}; this.want = false; this.retryMs = 1000; this.label = 'BOX'; }
   static supported(){ return !!(navigator.bluetooth && navigator.bluetooth.requestDevice); }
   async start(){
     this.want = true;
@@ -327,13 +360,13 @@ class BleSource {
     await this.connect();
   }
   async connect(){
-    this.app.setLink('conectare…', 'wait');
+    this.app.setLink('connecting…', 'wait');
     const server = await this.device.gatt.connect();
     const svc = await server.getPrimaryService(UUID.SERVICE);
     const [data, event, control, info] = await Promise.all(
       [UUID.DATA, UUID.EVENT, UUID.CONTROL, UUID.INFO].map(u => svc.getCharacteristic(u)));
     this.chr = { data, event, control, info };
-    try { this.app.onInfo(new TextDecoder().decode(await info.readValue())); } catch(e){ this.app.onInfo('(INFO necitit)'); }
+    try { this.app.onInfo(new TextDecoder().decode(await info.readValue())); } catch(e){ this.app.onInfo('(INFO unread)'); }
     event.addEventListener('characteristicvaluechanged', ev => this.app.onEventBytes(ev.target.value));
     data.addEventListener('characteristicvaluechanged', ev => this.app.onDataBytes(ev.target.value));
     await event.startNotifications();
@@ -344,8 +377,8 @@ class BleSource {
   }
   onDisconnect(){
     this.chr = {};
-    if (!this.want){ this.app.setLink('deconectat', 'bad'); return; }
-    this.app.setLink('reconectare…', 'bad');
+    if (!this.want){ this.app.setLink('disconnected', 'bad'); return; }
+    this.app.setLink('reconnecting…', 'bad');
     this.app.onLinkLost();
     setTimeout(async () => {
       if (!this.want) return;
@@ -354,14 +387,14 @@ class BleSource {
     }, this.retryMs);
   }
   async send(dv){
-    if (!this.chr.control) throw new Error('cutia nu este conectată');
+    if (!this.chr.control) throw new Error('box not connected');
     await this.chr.control.writeValueWithResponse(dv);
   }
   stop(){ this.want = false; try { if (this.device && this.device.gatt.connected) this.device.gatt.disconnect(); } catch(e){} }
 }
 
 /* ================= sursa: simulatorul de cutie ================= */
-// Produce exact aceleași pachete binare ca firmware-ul, deci testează și decodarea.
+// Produces exactly the same binary packets as the firmware, so it also tests the decoding.
 class SimSource {
   constructor(app){
     this.app = app; this.label = 'SIMULATOR'; this.target = 50; this.v = 0; this.held = 0;
@@ -371,7 +404,7 @@ class SimSource {
   static gauss(){ let u=0,v=0; while(!u) u=Math.random(); while(!v) v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
   utc(){ return Date.now() % DAY; }
   start(){
-    this.app.setLink('simulat', 'ok');
+    this.app.setLink('simulated', 'ok');
     this.app.onInfo('TSD-BOX;fw=sim-' + VERSION + ';proto=1');
     this.app.onConnected();
     this.timer = setInterval(() => this.tick(), 100);
@@ -382,12 +415,12 @@ class SimSource {
     if (this.down) return;
     const dt = 0.1, now = performance.now();
     const tgt = this.target / 3.6;
-    this.v += Math.max(-3*dt, Math.min(2*dt, tgt - this.v));        // accelerare 2 m/s², frânare 3 m/s²
+    this.v += Math.max(-3*dt, Math.min(2*dt, tgt - this.v));        // accelerate 2 m/s², brake 3 m/s²
     let meas = this.v > 0.3 ? this.v + 0.05*SimSource.gauss() : Math.abs(0.06*SimSource.gauss());
     let flags = FLAG.TIME | FLAG.PPS;
     const lost = now < this.lostUntil;
     if (!lost){ flags |= FLAG.FIX; this.held = meas; }
-    else if (now - this.lostStart < 30000){ flags |= FLAG.EST; meas = this.held; }   // max 30 s fără semnal
+    else if (now - this.lostStart < 30000){ flags |= FLAG.EST; meas = this.held; }   // at most 30 s without signal
     else { meas = 0; }
     meas = Math.max(0, meas);
     const cms = Math.round(meas * 100);
@@ -407,16 +440,16 @@ class SimSource {
     this.evSeq = this.evSeq % 255 + 1;
     const e = { seq:this.evSeq, type, utc, odo:this.odo };
     this.events.push(e); if (this.events.length > 32) this.events.shift();
-    if (this.dropNext){ this.dropNext = false; return; }                 // eveniment „pierdut” intenționat
+    if (this.dropNext){ this.dropNext = false; return; }                 // deliberately "lost" event
     this.app.onEventBytes(encodeEvent(e));
   }
   button(){ this.emit(EV.BUTTON, this.utc()); }
   loseSignal(s){ this.lostStart = performance.now(); this.lostUntil = this.lostStart + s*1000; }
   reboot(){
-    this.down = true; this.app.setLink('cutie repornită…', 'bad');
+    this.down = true; this.app.setLink('box rebooting…', 'bad');
     setTimeout(() => {
       this.odo = 0; this.seq = 0; this.evSeq = 0; this.events = []; this.autostart = null; this.down = false;
-      this.app.setLink('simulat', 'ok'); this.emit(EV.BOOT, this.utc());
+      this.app.setLink('simulated', 'ok'); this.emit(EV.BOOT, this.utc());
     }, 1500);
   }
   async send(dv){
@@ -427,31 +460,33 @@ class SimSource {
   }
 }
 
-/* ================= motorul probei (specificații v1.3, secțiunile 5 și 9.3) ================= */
-// Funcții pure: starea probei e o listă de evenimente; toate valorile se recalculează din ea.
-// Unități: t în ms (timp continuu UTC), odo în mm (odometru continuu necalibrat), v în km/h.
-// Semn: plus = întârziere (timp în plus față de ideal), minus = avans.
+/* ================= stage engine (spec v1.3, sections 5 and 9.3) ================= */
+// Pure functions: the stage state is a list of events; every value is recomputed from it.
+// Units: t in ms (continuous UTC time), odo in mm (continuous uncalibrated odometer), v in km/h.
+// Sign: plus = late (more time than ideal), minus = early.
 const Engine = {
-  create(k, vimp){ return { running:false, k: k || 1, vimp0: vimp || null, segs:[], corr:[], back:[], backOpen:null, mode:'SEGMENT' }; },
+  create(k, vimp){ return { running:false, k: k || 1, vimp0: vimp || null, segs:[], corr:[], back:[], backOpen:null, mode:'SEGMENT', tt:null }; },
+  // time stage: tt = { D: set distance (mm), T: set time (ms) }; exact speed D/T, no rounding
+  ttSpeed(tt){ return (tt.D / 1e6) / (tt.T / 3.6e6); },
 
   start(st, t, odo){ st.running = true; st.segs = [{ t, odo, v: st.vimp0 }]; st.corr = []; st.back = []; st.backOpen = null; },
 
-  // RESTART: segmentul nou pornește din (t, odo); se inserează în ordinea timpului (evenimentele recuperate prin REPLAY pot veni târziu)
+  // MARK: the new segment starts at (t, odo); inserted in time order (events recovered by REPLAY may arrive late)
   restart(st, t, odo){
     if (!st.running || t < st.segs[0].t) return false;
     if (st.segs.some(s => s.t === t)) return false;
     let i = st.segs.length; while (i > 0 && st.segs[i-1].t > t) i--;
-    st.segs.splice(i, 0, { t, odo, v: st.segs[i-1].v });     // moștenește viteza segmentului anterior
+    st.segs.splice(i, 0, { t, odo, v: st.segs[i-1].v });     // inherits the previous segment's speed
     return true;
   },
 
-  // V_imp se aplică retroactiv segmentului curent (de la ultimul RESTART); înainte de START devine viteza primului segment
+  // V_imp applies retroactively to the current segment (from the last MARK); before START it becomes the first segment's speed
   setV(st, v){ if (st.running) st.segs[st.segs.length-1].v = v; else st.vimp0 = v; },
   curV(st){ return st.running ? st.segs[st.segs.length-1].v : st.vimp0; },
 
   correct(st, t, mm){ if (st.running) st.corr.push({ t, mm }); },
 
-  // BACK: prima apăsare deschide intervalul, a doua îl închide; în interval distanța scade
+  // BACK: first press opens the interval, second closes it; inside it the distance decreases
   toggleBack(st, odo){
     if (!st.running) return null;
     if (st.backOpen === null){ st.backOpen = odo; return true; }
@@ -465,7 +500,7 @@ const Engine = {
     return s;
   },
 
-  // distanța probei (mm) la odometrul odo și momentul t: D = k × Σ(±Δodo) + Σ corecții
+  // stage distance (mm) at odometer odo and time t: D = k × Σ(±Δodo) + Σ corrections
   D(st, odo, t){
     const o0 = st.segs[0].odo;
     let c = 0; for (const x of st.corr) if (x.t <= t) c += x.mm;
@@ -477,7 +512,7 @@ const Engine = {
     const segs = st.segs, n = segs.length, last = segs[n-1];
     const dGen = Engine.D(st, odo, t), dSeg0 = Engine.D(st, last.odo, last.t);
     const dInt = dGen - dSeg0, tGen = t - segs[0].t, tInt = t - last.t;
-    // timp ideal (s): Σ 3,6 × d_i / v_i pe segmentele închise + segmentul curent
+    // ideal time (s): Σ 3.6 × d_i / v_i over closed segments + the current segment
     let idealClosed = 0, ok = true;
     for (let i = 0; i < n - 1; i++){
       const d = Engine.D(st, segs[i+1].odo, segs[i+1].t) - Engine.D(st, segs[i].odo, segs[i].t);
@@ -490,41 +525,46 @@ const Engine = {
       const idealInt = 3.6 * (dInt / 1000) / v;
       if (st.mode === 'SEGMENT') tDev = tInt / 1000 - idealInt;
       else if (ok) tDev = tGen / 1000 - (idealClosed + idealInt);
-      if (tDev !== null) dDev = tDev * v / 3.6 * 1000;          // mm, același semn: plus = metri de recuperat
+      if (tDev !== null) dDev = tDev * v / 3.6 * 1000;          // mm, same sign: plus = metres to make up
     }
-    return { tGen, tInt, dGen, dInt, tDev, dDev, v, seg: n, back: st.backOpen !== null };
+    const out = { tGen, tInt, dGen, dInt, tDev, dDev, v, seg: n, back: st.backOpen !== null };
+    if (st.tt){ out.tLeft = st.tt.T - tGen; out.dLeft = st.tt.D - dGen; }
+    return out;
   },
 };
 
 
-/* ================= GPS-ul telefonului ================= */
-// Integrează distanța din viteza raportată de telefon (Doppler, orizontală). Folosit ca sursă completă sau ca rezervă.
-const PHONE_STOP = 0.3;                       // m/s (~1 km/h): sub prag distanța nu crește
-const PHONE_ACC_MAX = 20;                     // m: citirile cu precizie mai slabă nu se folosesc (filtrul de salturi)
-const PHONE_HOLD_MS = 30000;                  // ms: cât timp se păstrează ultima viteză validă (ca la cutie)
-const PHONE_MIN_DT = 700;                     // ms: fixurile venite mai repede de atât după precedentul (în afara ritmului de 1/s) se ignoră
-function hav(a, b){                           // distanță în metri între două poziții
+
+/* ================= phone GPS ================= */
+// Distance is integrated from the speed reported by the phone (Doppler, horizontal). Used as full source or as backup.
+const PHONE_STOP = 0.3;                       // m/s (~1 km/h): below this the distance does not grow
+const PHONE_ACC_MAX = 20;                     // m: readings with worse accuracy are not used (jump filter)
+const PHONE_HOLD_MS = 30000;                  // ms: how long the last valid speed is held (as in the box)
+const PHONE_MIN_DT = 700;                     // ms: fixes arriving sooner than this after the previous one are ignored
+function hav(a, b){                           // metres between two positions
   const R = 6371008.8, r = Math.PI/180, dLat = (b.lat-a.lat)*r, dLon = (b.lon-a.lon)*r;
   const h = Math.sin(dLat/2)**2 + Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dLon/2)**2;
   return 2*R*Math.asin(Math.min(1, Math.sqrt(h)));
 }
 class PhoneGPS {
-  constructor(onFix){ this.onFix = onFix; this.watch = null; this.odo = 0; this.prev = null; this.speed = 0; this.rawSpeed = null; this.acc = null; this.valid = false; this.est = false; this.lastGoodV = 0; this.lastGoodTs = null; this.at = 0; this.err = ''; this.n = 0; }
+  constructor(onFix){ this.onFix = onFix; this.watch = null; this.odo = 0; this.prev = null; this.speed = 0; this.rawSpeed = null; this.acc = null; this.valid = false; this.est = false; this.lastGoodV = 0; this.lastGoodTs = null; this.at = 0; this.err = ''; this.denied = false; this.n = 0; }
   static supported(){ return 'geolocation' in navigator; }
   start(){
-    if (!PhoneGPS.supported()){ this.err = 'fără geolocație'; return; }
-    this.watch = navigator.geolocation.watchPosition(p => this.fix(p), e => { this.err = e.message || ('eroare ' + e.code); },
-      { enableHighAccuracy:true, maximumAge:0, timeout:15000 });
+    if (!PhoneGPS.supported()){ this.err = 'no geolocation'; return; }
+    this.watch = navigator.geolocation.watchPosition(p => this.fix(p), e => {
+        this.err = e.code === 1 ? 'location blocked' : (e.message || ('error ' + e.code));
+        if (e.code === 1){ this.denied = true; showGeoHelp(); }
+      }, { enableHighAccuracy:true, maximumAge:0, timeout:15000 });
   }
   stop(){ if (this.watch !== null) navigator.geolocation.clearWatch(this.watch); this.watch = null; }
   fix(pos){
     const c = pos.coords, ts = pos.timestamp, here = { lat:c.latitude, lon:c.longitude };
-    // Android trimite uneori un fix suplimentar între cele de 1/s, adesea cu viteza 0 în mers: îl ignorăm (la fel pe cele mai vechi)
+    // Android sometimes sends an extra fix between the 1/s ones, often with speed 0 while moving: ignore it (and older ones)
     if (this.prev && ts - this.prev.ts < PHONE_MIN_DT){ this.skipped = (this.skipped || 0) + 1; return; }
     let raw = (typeof c.speed === 'number' && isFinite(c.speed)) ? Math.max(0, c.speed) : null;
-    if (raw === null && this.prev && ts > this.prev.ts) raw = hav(this.prev, here) / ((ts - this.prev.ts) / 1000);   // fără viteză raportată: din poziții
+    if (raw === null && this.prev && ts > this.prev.ts) raw = hav(this.prev, here) / ((ts - this.prev.ts) / 1000);   // no reported speed: from positions
     const good = c.accuracy <= PHONE_ACC_MAX;
-    // filtrul de salturi: o citire cu precizie slabă nu se folosește; se păstrează ultima viteză validă (EST), cel mult 30 s
+    // jump filter: a reading with poor accuracy is not used; the last valid speed is held (EST), at most 30 s
     let v, est = false;
     if (good){ v = raw === null ? 0 : raw; this.lastGoodV = v; this.lastGoodTs = ts; }
     else if (this.lastGoodTs !== null && ts - this.lastGoodTs < PHONE_HOLD_MS){ v = this.lastGoodV; est = true; }
@@ -532,22 +572,23 @@ class PhoneGPS {
     if (this.prev){
       const dt = (ts - this.prev.ts) / 1000;
       if (dt > 0 && dt < 5){ const va = (v + this.prev.v) / 2; if (va >= PHONE_STOP) this.odo += va * dt * 1000; }
-      else if (dt >= 5 && dt < 600 && good && this.prev.good) this.odo += hav(this.prev, here) * 1000; // gol lung: linie dreaptă (subestimează în viraje)
+      else if (dt >= 5 && dt < 600 && good && this.prev.good) this.odo += hav(this.prev, here) * 1000; // long gap: straight line (underestimates in bends)
     }
     this.prev = { lat:here.lat, lon:here.lon, ts, v, good };
-    this.rawSpeed = raw; this.speed = v; this.acc = c.accuracy; this.valid = good; this.est = est; this.at = performance.now(); this.n++; this.err = '';
+    this.fixTs = ts;
+    this.rawSpeed = raw; this.speed = v; this.acc = c.accuracy; this.valid = good; this.est = est; this.at = performance.now(); this.n++; this.err = ''; this.denied = false;
     if (this.onFix) this.onFix(this);
   }
-  odoNow(perf = performance.now()){                                      // mm, extrapolat cel mult 1,5 s
+  odoNow(perf = performance.now()){                                      // mm, extrapolated at most 1.5 s
     if (!this.prev || this.speed < PHONE_STOP) return this.odo;
     return this.odo + this.speed * Math.min(perf - this.at, 1500);
   }
 }
-// Telefonul ca sursă completă: produce aceleași pachete DATA ca o cutie, cu ceasul telefonului
+// The phone as full source: produces the same DATA packets as a box, with the phone clock
 class PhoneSource {
-  constructor(app){ this.app = app; this.label = 'TELEFON'; this.kind = 'phone'; this.seq = 0; this.gps = null; }
+  constructor(app){ this.app = app; this.label = 'PHONE'; this.kind = 'phone'; this.seq = 0; this.gps = null; }
   start(){
-    this.app.setLink('—', ''); this.app.onInfo('GPS telefon'); this.app.onConnected();
+    this.app.setLink('—', ''); this.app.onInfo('phone GPS'); this.app.onConnected();
     this.gps = new PhoneGPS(g => this.emit(g)); this.gps.start();
   }
   emit(g){
@@ -557,13 +598,18 @@ class PhoneSource {
     this.app.onDataBytes(encodeData({ seq:this.seq, utc:Date.now() % DAY, odo:modU32(Math.round(g.odo)),
       speed:Math.min(65535, Math.round(g.speed*100)), flags, sats:0, sacc:255, evSeq:0 }));
   }
-  async send(){ throw new Error('telefonul nu primește comenzi'); }
+  async send(){ throw new Error('the phone takes no commands'); }
   stop(){ if (this.gps) this.gps.stop(); }
 }
+function showGeoHelp(){
+  const el = document.getElementById('geoHelp'); if (!el) return;
+  el.style.display = 'block';
+  el.innerHTML = 'Location is blocked for this app.<br>Android: Settings → Apps → Chrome → Permissions → Location → <b>Allow only while using the app</b>, with <b>Use precise location</b> on.<br>' +
+    'Then in Chrome: the icon left of the address (or ⋮ → Settings → Site settings → Location) → allow this site. Reopen the app.';
+  App.toast('Location blocked: see ☰ → Source');
+}
 
-/* ================= accelerometrul: doar înregistrat în log, nefolosit la calcule ================= */
-// Statistici pe fiecare interval dintre două rânduri de log: număr de citiri, frecvență, medie, abatere standard și amplitudine
-// a modulului accelerației (cu gravitația inclusă, deci independent de cum stă telefonul în suport).
+/* ================= accelerometer: recorded in the log only, not used in calculations ================= */
 const Acc = {
   on:false, n:0, sum:0, sum2:0, min:Infinity, max:-Infinity, t0:0,
   start(){
@@ -588,7 +634,35 @@ let DEVICE = (/Android [^;)]+; ([^;)]+)/.exec(navigator.userAgent) || [, , ''])[
 if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues)
   navigator.userAgentData.getHighEntropyValues(['model','platformVersion']).then(v => { if (v.model) DEVICE = v.model + (v.platformVersion ? ' · Android ' + v.platformVersion : ''); }).catch(() => {});
 
-/* ================= stocare: loguri în IndexedDB ================= */
+/* ================= sound: countdown beeps ================= */
+const Sound = {
+  ctx:null,
+  unlock(){ try { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); if (this.ctx.state === 'suspended') this.ctx.resume(); } catch(e){} },
+  beep(ms, hz){
+    if (!S.set.sound) return; this.unlock(); const c = this.ctx; if (!c) return;
+    try {
+      const o = c.createOscillator(), g = c.createGain(), t = c.currentTime;
+      o.type = 'square'; o.frequency.value = hz; g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.4, t + 0.01); g.gain.setValueAtTime(0.4, t + ms/1000 - 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + ms/1000);
+      o.connect(g).connect(c.destination); o.start(t); o.stop(t + ms/1000 + 0.02);
+    } catch(e){}
+    S.beeps.push({ at:performance.now(), ms, hz });  if (S.beeps.length > 30) S.beeps.shift();
+  },
+  short(){ this.beep(120, 880); },
+  long(){ this.beep(900, 1320); },
+};
+// one countdown per target time: short beep as each of the last 10 seconds starts, long beep at zero
+function countdown(key, target, now){
+  if (target === null || now === null) return;
+  const rem = target - now, prev = S.cd[key];
+  if (rem > 10500 || rem < -1500){ S.cd[key] = undefined; return; }
+  const n = rem <= 0 ? 0 : Math.ceil(rem / 1000);
+  if (prev === undefined){ S.cd[key] = n; return; }        // first look: no beep for an already running second
+  if (n < prev){ S.cd[key] = n; if (n === 0) Sound.long(); else Sound.short(); }
+}
+
+/* ================= storage: logs in IndexedDB ================= */
 const DB = {
   db:null,
   open(){
@@ -619,9 +693,9 @@ const DB = {
     });
   },
 };
-const EV_COLS = ['nr','ora','tip','segment','T_gen_s','D_gen_m','V_imp','T_dev_s','seg_durata_s','seg_dist_m','seg_vmed_kmh','detalii'];
-const C_COLS  = ['ora','t_ms','sursa','odo_brut_mm','odo_total_mm','v_kmh','flags','sat','D_gen_m','T_gen_s','V_imp','T_dev_s','segment','back',
-                 'tel_v_kmh','tel_odo_m','tel_prec_m','lat','lon','tel_v_brut_kmh','acc_n','acc_hz','acc_med_ms2','acc_sd_ms2','acc_ampl_ms2'];
+const EV_COLS = ['no','time','type','segment','T_gen_s','D_gen_m','V_imp','T_dev_s','seg_dur_s','seg_dist_m','seg_avg_kmh','details'];
+const C_COLS  = ['time','t_ms','source','odo_raw_mm','odo_total_mm','v_kmh','flags','sats','D_gen_m','T_gen_s','V_imp','T_dev_s','segment','back',
+                 'ph_v_kmh','ph_odo_m','ph_acc_m','lat','lon','ph_v_raw_kmh','acc_n','acc_hz','acc_mean_ms2','acc_sd_ms2','acc_range_ms2'];
 const Log = {
   id:null, meta:null, ev:[], c:[], n:0,
   begin(t){
@@ -648,18 +722,23 @@ const Log = {
       this.meta.evRows += ev.length; this.meta.cRows += c.length;
       if (r){ this.meta.distM = Math.round(r.dGen/1000); this.meta.durS = Math.round(r.tGen/1000); }
       await DB.putLog(this.meta);
-    } catch(e){ App.log('eroare la salvarea logului: ' + e.message); }
+    } catch(e){ App.log('log save error: ' + e.message); }
   },
   async end(){ await this.flush(); this.id = null; this.meta = null; },
 };
-function csvNum(v, d){ if (v === null || v === undefined || v === '' || !isFinite(v)) return ''; const x = Number(v).toFixed(d); return (Number(x) === 0 ? (0).toFixed(d) : x).replace('.', ','); }
+function csvNum(v, d, comma){
+  if (v === null || v === undefined || v === '' || !isFinite(v)) return '';
+  const x = Number(v).toFixed(d), y = Number(x) === 0 ? (0).toFixed(d) : x;
+  return comma ? y.replace('.', ',') : y;
+}
 async function exportCsv(id, kind, share){
   const chunks = (await DB.chunks(id)).filter(c => c.kind === kind);
   const rows = chunks.flatMap(c => c.rows);
-  const dec = kind === 'ev' ? [0,null,null,0,1,1,1,2,1,1,2,null] : [null,0,null,0,0,2,0,0,1,1,1,2,0,0,2,1,1,6,6,2,0,0,3,3,3];
-  const lines = [(kind === 'ev' ? EV_COLS : C_COLS).join(';')].concat(rows.map(r => r.map((v, i) =>
-    dec[i] === null || typeof v === 'string' ? String(v ?? '').replace(/;/g, ',') : csvNum(v, dec[i])).join(';')));
-  const name = 'TSD_' + id.slice(1) + '_' + (kind === 'ev' ? 'evenimente' : 'continuu') + '.csv';
+  const eu = S.set.csv !== 'std', sep = eu ? ';' : ',';
+  const dec = kind === 'ev' ? [0,null,null,0,1,1,2,2,1,1,2,null] : [null,0,null,0,0,2,0,0,1,1,2,2,0,0,2,1,1,6,6,2,0,0,3,3,3];
+  const lines = [(kind === 'ev' ? EV_COLS : C_COLS).join(sep)].concat(rows.map(r => r.map((v, i) =>
+    dec[i] === null || typeof v === 'string' ? String(v ?? '').split(sep).join(eu ? ',' : ';') : csvNum(v, dec[i], eu)).join(sep)));
+  const name = 'TSD_' + id.slice(1) + '_' + (kind === 'ev' ? 'events' : 'continuous') + '.csv';
   const blob = new Blob(['﻿' + lines.join('\r\n')], { type:'text/csv' });
   const file = new File([blob], name, { type:'text/csv' });
   if (share && navigator.canShare && navigator.canShare({ files:[file] })){
@@ -667,20 +746,23 @@ async function exportCsv(id, kind, share){
   }
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
-  App.toast('Salvat în Descărcări: ' + name);
+  App.toast('Saved to Downloads: ' + name);
 }
 
-/* ================= starea aplicației ================= */
+/* ================= app state ================= */
 const S = {
   src:null, last:null, lastAt:0, t:null, skews:[], skew:null,
   odoRaw:null, odoTotal:0, resumeRaw:null, resumePos:null,
   pkt:{ count:0, lost:0, lastSeq:null, times:[] },
   lastEvSeq:null, seenEv:new Set(), replayAt:0, replayTries:0,
   info:'', evlog:[],
-  autostartT:null,
-  backup:null, phoneAtBox:0, gap:null,       // GPS telefon în paralel și golul acoperit de el
+  startT:null, autoStart:true,               // start time (absolute ms) and whether the stage starts by itself
+  backup:null, phoneAtBox:0, gap:null,       // phone GPS in parallel and the gap it covers
   cal:{ a:null, b:null },
-  set:{ k:1, vimp:null, mode:'PROBA', theme:'day', clockOffset:0, clickKey:null, backup:true },
+  calc:{ order:[] },
+  cd:{}, beeps:[],
+  set:{ k:1, vimp:null, theme:'day', clockOffset:0, clickKey:null, backup:true, sound:true,
+        csv: (1.5).toLocaleString().includes(',') ? 'eu' : 'std' },
   stage:null,
   lastPress:-1e9, downAt:null, learnKey:false,
 };
@@ -692,7 +774,7 @@ const store = {
 };
 Object.assign(S.set, store.get('tsd-settings', {}));
 const saveSettings = () => store.put('tsd-settings', S.set);
-S.stage = Engine.create(S.set.k, S.set.vimp);          // abaterea pornește implicit pe SEGMENT
+S.stage = Engine.create(S.set.k, S.set.vimp);          // deviation starts on SEGMENT, speed stage
 
 const srcKind = () => S.src ? (S.src.kind || (S.src instanceof SimSource ? 'sim' : 'box')) : null;
 const freshMs = () => srcKind() === 'phone' ? 3000 : 1000;
@@ -704,18 +786,18 @@ const App = {
   onConnected(){ S.replayTries = 0; },
   onLinkLost(){},
 
-  // ora UTC a zilei → timp absolut (ms), ziua aleasă cea mai apropiată de ceasul telefonului: trece singur peste miezul nopții
+  // UTC time of day → absolute time (ms); the day closest to the phone clock is chosen, so midnight is handled
   toT(utc){
     const ref = Date.now();
     let t = Math.floor(ref / DAY) * DAY + utc;
     if (t - ref > DAY/2) t -= DAY; else if (ref - t > DAY/2) t += DAY;
     return t;
   },
-  // timpul probei la un moment performance.now(); skew = max(t − sosire) pe ultimele pachete (întârzierea minimă)
+  // stage time at a performance.now() moment; skew = max(t − arrival) over recent packets (minimum delay)
   tAt(perf){ return S.skew === null ? null : perf + S.skew; },
   nowT(){ return this.tAt(performance.now()); },
 
-  // odometrul continuu (mm) la un moment dat; în golurile cutiei, din GPS-ul telefonului
+  // continuous odometer (mm) at a moment; during box gaps, from the phone GPS
   odoAt(perf){
     if (S.gap) return S.odoTotal + (S.backup.odoNow(perf) - S.gap.phone0);
     if (!S.last) return S.odoTotal;
@@ -727,7 +809,7 @@ const App = {
   local(t){ return modDay(t - new Date().getTimezoneOffset()*60000 + S.set.clockOffset); },
 
   onDataBytes(dv){
-    let p; try { p = decodeData(dv); } catch(e){ this.log('eroare DATA: ' + e.message); return; }
+    let p; try { p = decodeData(dv); } catch(e){ this.log('DATA error: ' + e.message); return; }
     const now = performance.now();
     const k = S.pkt; k.count++; k.times.push(now); while (k.times.length && now - k.times[0] > 2000) k.times.shift();
     if (k.lastSeq !== null){ const gap = (p.seq - k.lastSeq - 1 + 65536) % 65536; if (gap > 0 && gap < 1000) k.lost += gap; }
@@ -737,35 +819,35 @@ const App = {
       S.skews.push(S.t - now); if (S.skews.length > 50) S.skews.shift();
       S.skew = Math.max(...S.skews);
     }
-    // odometru: diferențe modulo 2^32; un salt înapoi înseamnă cutie repornită
+    // odometer: differences modulo 2^32; a jump backwards means the box rebooted
     if (S.odoRaw === null){
-      if (S.gap){ const d = S.backup.odoNow(now) - S.gap.phone0; S.odoTotal += d; this.log('gol acoperit cu GPS telefon: ' + Math.round(d/1000) + ' m'); Log.event('GOL_TELEFON', this.nowT(), { note:Math.round(d/1000) + ' m' }); S.gap = null; }
+      if (S.gap){ const d = S.backup.odoNow(now) - S.gap.phone0; S.odoTotal += d; this.log('gap covered by phone GPS: ' + Math.round(d/1000) + ' m'); Log.event('GAP_PHONE', this.nowT(), { note:Math.round(d/1000) + ' m' }); S.gap = null; }
       else if (S.resumeRaw !== null){
         const d = signed32(modU32(p.odo - S.resumeRaw));
-        if (d >= 0 && d < 5e8){ S.odoTotal += d; this.log('reluare: ' + Math.round(d/1000) + ' m parcurși cât aplicația a fost închisă'); }
+        if (d >= 0 && d < 5e8){ S.odoTotal += d; this.log('resume: ' + Math.round(d/1000) + ' m driven while the app was closed'); }
       } else if (S.resumePos && this.phonePos){
-        const d = hav(S.resumePos, this.phonePos); if (d < 50000){ S.odoTotal += d * 1000; this.log('reluare: ' + Math.round(d) + ' m estimați în linie dreaptă'); }
+        const d = hav(S.resumePos, this.phonePos); if (d < 50000){ S.odoTotal += d * 1000; this.log('resume: ' + Math.round(d) + ' m estimated in a straight line'); }
       }
       S.resumeRaw = null; S.resumePos = null; S.odoRaw = p.odo;
     } else {
       const d = signed32(modU32(p.odo - S.odoRaw));
-      if (d >= 0){ S.odoTotal += d; if (S.gap){ this.log('cutia a revenit; distanța din gol vine de la cutie'); Log.event('GOL_CUTIE', S.t !== null ? S.t : this.nowT(), { note:'cutia a revenit' }); S.gap = null; } }
-      else if (S.gap){ const g = S.backup.odoNow(now) - S.gap.phone0; S.odoTotal += g; this.log('cutie repornită; gol acoperit cu GPS telefon: ' + Math.round(g/1000) + ' m'); Log.event('GOL_TELEFON', S.t !== null ? S.t : this.nowT(), { note:Math.round(g/1000) + ' m' }); S.gap = null; }
+      if (d >= 0){ S.odoTotal += d; if (S.gap){ this.log('box is back; the gap distance comes from the box'); Log.event('GAP_BOX', S.t !== null ? S.t : this.nowT(), { note:'box is back' }); S.gap = null; } }
+      else if (S.gap){ const g = S.backup.odoNow(now) - S.gap.phone0; S.odoTotal += g; this.log('box rebooted; gap covered by phone GPS: ' + Math.round(g/1000) + ' m'); Log.event('GAP_PHONE', S.t !== null ? S.t : this.nowT(), { note:Math.round(g/1000) + ' m' }); S.gap = null; }
       S.odoRaw = p.odo;
     }
     S.last = p; S.lastAt = now;
     if (S.backup) S.phoneAtBox = S.backup.odoNow(now);
-    // REPLAY: întâi de la următorul așteptat, apoi tot bufferul (cutie repornită), apoi renunță
+    // REPLAY: first from the next expected, then the whole buffer (box rebooted), then give up
     if (S.lastEvSeq === null) S.lastEvSeq = p.evSeq;
     else if (p.evSeq === S.lastEvSeq) S.replayTries = 0;
     else if (now - S.replayAt > 1000){
       S.replayAt = now;
-      if (S.replayTries === 0){ const from = S.lastEvSeq % 255 + 1; this.log('lipsește evenimentul ' + from + ' → REPLAY'); this.send(encodeCmd(CMD.REPLAY, from)); }
-      else if (S.replayTries === 1){ this.log('REPLAY complet (posibil cutie repornită)'); this.send(encodeCmd(CMD.REPLAY, 1)); }
-      else { this.log('evenimente nerecuperate; continuu de la #' + p.evSeq); S.lastEvSeq = p.evSeq; S.replayTries = -1; }
+      if (S.replayTries === 0){ const from = S.lastEvSeq % 255 + 1; this.log('event ' + from + ' missing → REPLAY'); this.send(encodeCmd(CMD.REPLAY, from)); }
+      else if (S.replayTries === 1){ this.log('full REPLAY (box may have rebooted)'); this.send(encodeCmd(CMD.REPLAY, 1)); }
+      else { this.log('events not recovered; continuing from #' + p.evSeq); S.lastEvSeq = p.evSeq; S.replayTries = -1; }
       S.replayTries++;
     }
-    // log continuu
+    // continuous log
     if (S.stage.running && S.t !== null){
       const odo = this.odoAt(now), r = Engine.compute(S.stage, S.t, odo), b = S.backup || (srcKind() === 'phone' ? S.src.gps : null);
       Log.cont([fmtClock(this.local(S.t), true), S.t, S.src ? S.src.label : '', p.odo, Math.round(odo), p.speed*0.036, p.flags, p.sats,
@@ -777,30 +859,37 @@ const App = {
   },
 
   onEventBytes(dv){
-    let e; try { e = decodeEvent(dv); } catch(err){ this.log('eroare EVENT: ' + err.message); return; }
+    let e; try { e = decodeEvent(dv); } catch(err){ this.log('EVENT error: ' + err.message); return; }
     const key = e.type === EV.BOOT ? 'b' + e.utc : e.seq + ':' + e.utc;
     if (S.seenEv.has(key)) return; S.seenEv.add(key);
     S.lastEvSeq = e.seq; S.replayTries = 0;
     const t = this.toT(e.utc);
     if (e.type === EV.BOOT){
-      S.resumeRaw = null;                                         // odometrul nou se detectează din saltul înapoi
-      this.log('#' + e.seq + ' PORNIRE CUTIE  ' + fmtClock(this.local(t), true)); Log.event('CUTIE_REPORNITA', t);
-      if (S.autostartT !== null && S.autostartT > (this.nowT() || 0)){ this.sendAutostart(S.autostartT); this.log('autostart retrimis'); }
+      S.resumeRaw = null;                                         // the new odometer is detected from the backwards jump
+      this.log('#' + e.seq + ' BOX BOOT  ' + fmtClock(this.local(t), true)); Log.event('BOX_REBOOT', t);
+      if (S.startT !== null && S.autoStart && S.startT > (this.nowT() || 0)){ this.sendAutostart(S.startT); this.log('autostart sent again'); }
       return;
     }
     const odo = this.odoAtRaw(e.odo);
     this.log('#' + e.seq + ' ' + EV_NAME[e.type] + '  ' + fmtClock(this.local(t), true) + '  odo ' + (e.odo/1000).toFixed(1) + ' m');
-    if (e.type === EV.AUTOSTART){ S.autostartT = null; this.press(t, odo, 'autostart'); }
-    if (e.type === EV.BUTTON) this.press(t, odo, 'buton cutie', true);
+    if (e.type === EV.AUTOSTART){ S.startT = null; this.press(t, odo, 'autostart'); }
+    if (e.type === EV.BUTTON) this.press(t, odo, 'box button', true);
   },
   odoAtRaw(raw){ return S.odoRaw === null ? S.odoTotal : S.odoTotal + signed32(modU32(raw - S.odoRaw)); },
 
   press(t, odo, how, fromBox){
     const st = S.stage;
-    if (!fromBox){ if (t - S.lastPress < 300) return; S.lastPress = t; }     // anti-ricoșeu pentru ecran și clicker
+    if (!fromBox){ if (t - S.lastPress < 300) return; S.lastPress = t; }     // debounce for screen and clicker
     if (!st.running){
-      Engine.start(st, t, odo); Log.begin(t); Log.event('START', t, { note:how + ' · ' + DEVICE + ' · v' + VERSION });
+      Engine.start(st, t, odo); Log.begin(t);
+      Log.event('START', t, { note:how + ' · ' + DEVICE + ' · v' + VERSION + (st.tt ? ' · time stage ' + (st.tt.D/1e6).toFixed(3) + ' km / ' + fmtDur(st.tt.T) : '') });
       this.toast('START (' + how + ')'); this.log('START (' + how + ')  ' + fmtClock(this.local(t), true)); saveStage(); return;
+    }
+    if (st.tt){                                                  // time stage: MARK restarts the stage (navigator's call)
+      if (t <= st.segs[0].t) return;
+      Engine.start(st, t, odo); Log.event('TIME_STAGE_RESTART', t, { note:how });
+      S.cd.tt = undefined;
+      this.toast('Time stage restarted (' + how + ')'); this.log('time stage restarted (' + how + ')  ' + fmtClock(this.local(t), true)); saveStage(); return;
     }
     const prev = st.segs.filter(s => s.t < t).pop();
     if (Engine.restart(st, t, odo)){
@@ -808,38 +897,39 @@ const App = {
       Log.event('MARK', t, { segDur, segDist, segAvg: segDur > 0 ? segDist/segDur*3.6 : null, note:how });
       this.toast('MARK → segment ' + st.segs.length + ' (' + how + ')'); this.log('MARK seg ' + st.segs.length + ' (' + how + ')  ' + fmtClock(this.local(t), true));
       saveStage();
-    } else this.log('apăsare ignorată (înainte de START sau dublă): ' + fmtClock(this.local(t), true));
+    } else this.log('press ignored (before START or duplicate): ' + fmtClock(this.local(t), true));
   },
   async send(dv){
-    if (!S.src){ this.toast('Nicio sursă conectată'); return; }
-    try { await S.src.send(dv); } catch(e){ this.toast('Comandă eșuată: ' + e.message); }
+    if (!S.src){ this.toast('No source connected'); return; }
+    try { await S.src.send(dv); } catch(e){ this.toast('Command failed: ' + e.message); }
   },
   sendAutostart(t){ return this.send(encodeCmd(CMD.SET_AUTOSTART, modDay(t))); },
   log(s){ const t = this.nowT(); S.evlog.unshift(fmtClock(this.local(t !== null ? t : Date.now())) + '  ' + s); if (S.evlog.length > 80) S.evlog.pop(); },
   toast(s){ const el=$('toast'); el.textContent=s; el.classList.add('on'); clearTimeout(this._tt); this._tt=setTimeout(()=>el.classList.remove('on'),1800); },
 };
 
-/* ================= salvarea probei (supraviețuiește închiderii aplicației) ================= */
+/* ================= saving the stage (survives the app closing) ================= */
 function saveStage(){
   if (!S.stage.running){ store.del('tsd-stage'); return; }
   store.put('tsd-stage', { v:1, stage:S.stage, odoTotal:S.odoTotal, odoRaw:S.odoRaw, kind:srcKind(),
     pos:App.phonePos || (S.backup && S.backup.prev ? { lat:S.backup.prev.lat, lon:S.backup.prev.lon } : null),
-    lastEvSeq:S.lastEvSeq, seen:[...S.seenEv].slice(-100), autostartT:S.autostartT, logId:Log.id, logMeta:Log.meta, logN:Log.n, saved:Date.now() });
+    lastEvSeq:S.lastEvSeq, seen:[...S.seenEv].slice(-100), startT:S.startT, autoStart:S.autoStart, logId:Log.id, logMeta:Log.meta, logN:Log.n, saved:Date.now() });
 }
 function restoreStage(){
   const x = store.get('tsd-stage', null);
   if (!x || x.v !== 1 || !x.stage || !x.stage.running) return false;
-  if (Date.now() - x.saved > 12*3600*1000){ store.del('tsd-stage'); return false; }   // probă mai veche de 12 ore: nu se reia
-  S.stage = x.stage; S.odoTotal = x.odoTotal; S.lastEvSeq = x.lastEvSeq; x.seen.forEach(k => S.seenEv.add(k));
-  S.autostartT = x.autostartT;
+  if (Date.now() - x.saved > 12*3600*1000){ store.del('tsd-stage'); return false; }   // older than 12 h: not resumed
+  S.stage = x.stage; if (S.stage.tt === undefined) S.stage.tt = null;
+  S.odoTotal = x.odoTotal; S.lastEvSeq = x.lastEvSeq; x.seen.forEach(k => S.seenEv.add(k));
+  S.startT = x.startT ?? x.autostartT ?? null; S.autoStart = x.autoStart ?? true;
   if (x.kind === 'box' && x.odoRaw !== null) S.resumeRaw = x.odoRaw;
   else if (x.pos) S.resumePos = x.pos;
   if (x.logId) Log.resume(x.logId, x.logMeta, x.logN);
-  Log.event('RELUARE', x.saved, { note:'aplicația a fost redeschisă' });
+  Log.event('RESUME', x.saved, { note:'app reopened' });
   return true;
 }
 
-/* ================= formatare ================= */
+/* ================= formatting and parsing ================= */
 const modDay = t => ((t % DAY) + DAY) % DAY;
 function fmtClock(ms, withMs){
   ms = modDay(ms);
@@ -852,6 +942,10 @@ function fmtDur(ms){                                      // H:MM:SS.z
   const z = Math.floor(ms/100) % 10, s = Math.floor(ms/1000);
   return Math.floor(s/3600) + ':' + String(Math.floor(s/60)%60).padStart(2,'0') + ':' + String(s%60).padStart(2,'0') + '.' + z;
 }
+function fmtLeft(ms){                                     // countdown; after zero shows −H:MM:SS.z
+  if (ms >= 0) return fmtDur(Math.ceil(ms/100)*100);
+  return '−' + fmtDur(-ms);
+}
 const fmtKm = mm => (mm/1e6).toFixed(3);
 function fmtAvg(mm, ms){ return ms < 1000 ? '—' : ((mm/1000)/(ms/1000)*3.6).toFixed(2); }
 function fmtDev(s, signed){                                // ± M:SS.z
@@ -860,20 +954,49 @@ function fmtDev(s, signed){                                // ± M:SS.z
   return signed && body !== '0:00.0' ? (s >= 0 ? '+' : '−') + body : body;
 }
 function flagNames(f){ return Object.entries(FLAG).filter(([,b]) => f & b).map(([n]) => n).join(' ') || '—'; }
-const fmtOff = ms => (ms >= 0 ? '+' : '−') + (Math.abs(ms)/1000).toFixed(1).replace('.', ',') + ' s';
+const fmtOff = ms => (ms >= 0 ? '+' : '−') + (Math.abs(ms)/1000).toFixed(1) + ' s';
+const fmtV = v => (Math.abs(v*10 - Math.round(v*10)) < 1e-9 ? v.toFixed(1) : v.toFixed(2));
+const num = s => { const v = parseFloat(String(s).trim().replace(',', '.')); return isFinite(v) ? v : null; };
+// duration typed as hh.mm.ss[.c] / mm.ss / plain digits hhmmss; any of . : , as separator → ms
+function parseDuration(str){
+  const s = String(str).trim(); if (!s) return null;
+  let p;
+  if (/^\d+$/.test(s)){ const d = s.padStart(6, '0'); if (d.length > 6) return null; p = [+d.slice(0,2), +d.slice(2,4), +d.slice(4,6)]; }
+  else { p = s.split(/[.:,]/).map(x => x === '' ? NaN : +x); if (p.some(x => !isFinite(x))) return null; }
+  let h = 0, m = 0, sec = 0, frac = 0;
+  if (p.length === 2){ [m, sec] = p; }
+  else if (p.length === 3){ [h, m, sec] = p; }
+  else if (p.length === 4){ [h, m, sec] = p; const f = String(s.split(/[.:,]/)[3]); frac = +('0.' + f); }
+  else return null;
+  if (m > 59 || sec > 59) return null;
+  return ((h*3600 + m*60 + sec) + frac) * 1000;
+}
+// clock time typed as hh.mm.ss / hh.mm / hhmmss / hhmm → ms after midnight
+function parseClock(str){
+  const s = String(str).trim(); let p;
+  if (/^\d{3,6}$/.test(s)){ const d = s.length <= 4 ? s.padStart(4, '0') + '00' : s.padStart(6, '0'); p = [+d.slice(0,2), +d.slice(2,4), +d.slice(4,6)]; }
+  else { const m = /^(\d{1,2})[.:,](\d{1,2})(?:[.:,](\d{1,2}))?$/.exec(s); if (!m) return null; p = [+m[1], +m[2], +(m[3] || 0)]; }
+  if (p[0] > 23 || p[1] > 59 || p[2] > 59) return null;
+  return (p[0]*3600 + p[1]*60 + p[2]) * 1000;
+}
 
-/* ================= bucla principală ================= */
+/* ================= main loop ================= */
 let lastSave = 0, lastFlush = 0;
 function tick(){
-  const now = performance.now(), kind = srcKind();
-  // gol de date de la cutie: distanța continuă din GPS-ul telefonului
+  const now = performance.now(), kind = srcKind(), t = App.nowT();
+  // box sends no data: distance continues from the phone GPS
   if ((kind === 'box' || kind === 'sim') && S.last && !S.gap && now - S.lastAt > 1000 && S.backup && S.backup.n && now - S.backup.at < 3000){
-    S.gap = { phone0:S.phoneAtBox, at:now }; App.log('cutia nu trimite date: distanța continuă din GPS-ul telefonului');
+    S.gap = { phone0:S.phoneAtBox, at:now }; App.log('box sends no data: distance continues from phone GPS');
   }
-  // autostart fără cutie: îl face aplicația
-  if (S.autostartT !== null && kind === 'phone'){
-    const t = App.nowT();
-    if (t !== null && t >= S.autostartT){ const at = S.autostartT; S.autostartT = null; App.press(at, App.odoAtT(at), 'autostart'); }
+  // countdown beeps: start time, and the end of a time stage
+  countdown('start', S.startT, t);
+  countdown('tt', S.stage.running && S.stage.tt ? S.stage.segs[0].t + S.stage.tt.T : null, t);
+  // start time reached
+  if (S.startT !== null && t !== null && t >= S.startT){
+    if (!S.autoStart){ if (t - S.startT > 1500) S.startT = null; }              // beeps only: forget it after the long beep
+    else if (kind === 'phone' || kind === null){                               // no box: the app starts the stage
+      const at = S.startT; S.startT = null; if (kind) App.press(at, App.odoAtT(at), 'autostart');
+    } else if (t - S.startT > 5000) S.startT = null;                           // with a box, the box starts it (AUTOSTART event)
   }
   if (S.stage.running && now - lastSave > 2000){ lastSave = now; saveStage(); }
   if (now - lastFlush > 2000){ lastFlush = now; Log.flush(); }
@@ -883,44 +1006,52 @@ function render(){
   const t = App.nowT(), p = S.last, now = performance.now(), fresh = isFresh(now), kind = srcKind();
   $('clock').textContent = t === null ? '--:--:--' : fmtClock(App.local(t));
   const sEl = $('stSrc');
-  sEl.textContent = S.gap ? 'TELEFON (rezervă)' : S.src ? S.src.label : '—'; sEl.className = S.gap ? 'st-est' : '';
+  sEl.textContent = S.gap ? 'PHONE (backup)' : S.src ? S.src.label : '—'; sEl.className = S.gap ? 'st-est' : '';
   const g = $('stGps');
-  if (S.gap){ g.textContent = 'telefon ±' + Math.round(S.backup.acc || 0) + ' m'; g.className = 'st-est'; }
-  else if (!fresh){ g.textContent = S.src ? (kind === 'phone' && S.src.gps && S.src.gps.err ? S.src.gps.err : 'fără date') : '—'; g.className = S.src ? 'st-bad' : ''; }
+  if (S.gap){ g.textContent = 'phone ±' + Math.round(S.backup.acc || 0) + ' m'; g.className = 'st-est'; }
+  else if (!fresh){ g.textContent = S.src ? (kind === 'phone' && S.src.gps && S.src.gps.err ? S.src.gps.err : 'no data') : '—'; g.className = S.src ? 'st-bad' : ''; }
   else if (kind === 'phone'){ const a = S.src.gps.acc; g.textContent = ((p.flags & FLAG.EST) ? 'EST ' : '') + '±' + Math.round(a) + ' m'; g.className = (p.flags & FLAG.FIX) ? 'st-ok' : (p.flags & FLAG.EST) ? 'st-est' : 'st-bad'; }
   else if (p.flags & FLAG.FIX){ g.textContent = 'FIX · ' + p.sats + ' sat'; g.className = 'st-ok'; }
   else if (p.flags & FLAG.EST){ g.textContent = 'EST'; g.className = 'st-est'; }
-  else { g.textContent = 'fără fix'; g.className = 'st-bad'; }
-  $('stArm').innerHTML = S.autostartT !== null ? 'Autostart: <b>' + fmtClock(App.local(S.autostartT)) + '</b>' : '';
+  else { g.textContent = 'no fix'; g.className = 'st-bad'; }
+  const st = S.stage;
+  $('stArm').innerHTML = (st.tt ? '<span class="ttTag">TIME STAGE</span> ' : '') +
+    (S.startT !== null ? 'Start <b>' + fmtClock(App.local(S.startT)) + '</b>' + (S.autoStart ? ' auto' : ' ♪') : '');
   $('vInst').textContent = S.gap ? (S.backup.speed*3.6).toFixed(1) : fresh ? (p.speed * 0.036).toFixed(1) : '—';
 
-  const st = S.stage;
   const r = (st.running && t !== null) ? Engine.compute(st, t, App.nowOdo()) : null;
+  $('tIntLbl').textContent = st.tt ? 'T_left' : 'T_int';
   if (r){
-    $('tGen').textContent = fmtDur(r.tGen); $('tInt').textContent = fmtDur(r.tInt);
+    $('tGen').textContent = fmtDur(r.tGen);
+    $('tInt').textContent = st.tt ? fmtLeft(r.tLeft) : fmtDur(r.tInt);
+    $('tInt').className = 'val num' + (st.tt && r.tLeft < 0 ? ' late' : '');
     $('dGen').textContent = fmtKm(r.dGen);  $('dInt').textContent = fmtKm(r.dInt);
     $('vmGen').textContent = fmtAvg(r.dGen, r.tGen); $('vmInt').textContent = fmtAvg(r.dInt, r.tInt);
-    $('startTxt').textContent = 'MARK'; $('startSub').textContent = 'segment ' + r.seg;
+    $('startTxt').textContent = 'MARK'; $('startSub').textContent = st.tt ? 'restarts the stage' : 'segment ' + r.seg;
   } else {
-    for (const id of ['tGen','tInt','dGen','dInt','vmGen','vmInt']) $(id).textContent = '—';
-    $('startTxt').textContent = 'START'; $('startSub').textContent = 'apoi MARK';
+    for (const id of ['tGen','dGen','dInt','vmGen','vmInt']) $(id).textContent = '—';
+    $('tInt').textContent = st.tt ? fmtLeft(st.tt.T) : '—'; $('tInt').className = 'val num';
+    $('startTxt').textContent = 'START'; $('startSub').textContent = 'then MARK';
   }
+  const dl = $('dLeftWrap'); dl.style.display = st.tt ? 'flex' : 'none';
+  if (st.tt) $('dLeft').textContent = (r ? (r.dLeft < 0 ? '−' : '') + fmtKm(Math.abs(r.dLeft)) : fmtKm(st.tt.D));
   renderDev(r);
-  if (document.activeElement !== vimpEl){ const cv = Engine.curV(st); const want = cv ? cv.toFixed(1) : ''; if (vimpEl.value !== want) vimpEl.value = want; }
-  const bb = $('backBtn'); bb.classList.toggle('active', !!(r && r.back)); bb.textContent = (r && r.back) ? 'BACK activ' : 'BACK';
-  $('modeBtn').textContent = 'Abatere: ' + (st.mode === 'SEGMENT' ? 'SEGMENT' : 'PROBĂ');
+  if (document.activeElement !== vimpEl){ const cv = Engine.curV(st); const want = cv ? fmtV(cv) : ''; if (vimpEl.value !== want) vimpEl.value = want; }
+  vimpEl.readOnly = !!st.tt;
+  const bb = $('backBtn'); bb.classList.toggle('active', !!(r && r.back)); bb.textContent = (r && r.back) ? 'BACK on' : 'BACK';
+  $('modeBtn').textContent = st.tt ? 'TIME STAGE' : 'Deviation: ' + (st.mode === 'SEGMENT' ? 'SEGMENT' : 'STAGE');
   $('kBtn').textContent = 'k = ' + st.k.toFixed(4); $('kBtn').classList.toggle('soon', st.running);
   for (const id of ['backBtn','m10Btn','p10Btn']) $(id).classList.toggle('soon', !st.running);
   if ($('panel').classList.contains('open')) renderPanel(t);
 }
-// bara de abatere: întârzierea în stânga (roșu), avansul în dreapta (galben); scară rădăcină, plin la 30 s
+// deviation bar: late on the left (red), early on the right (yellow); square-root scale, full at 30 s
 function renderDev(r){
   const fill = $('devFill'), txt = $('devText'), dd = $('dDev');
   if (!r || r.tDev === null){
     fill.style.width = '0'; txt.textContent = ''; dd.textContent = '—';
     dd.className = 'val lg num'; return;
   }
-  const dev = r.tDev, late = dev > 0.05, early = dev < -0.05, a = Math.abs(dev);
+  const dev = r.tDev, a = Math.abs(dev), late = dev > 0 && a >= 0.1, early = dev < 0 && a >= 0.1;   // colour only from 0.1 s, as displayed
   const frac = Math.min(1, Math.sqrt(a / 30)) * 50;
   fill.style.width = frac + '%';
   fill.style.left = late ? (50 - frac) + '%' : '50%';
@@ -940,59 +1071,61 @@ function renderPanel(t){
       ['odo_mm', p.odo + '  (' + (p.odo/1000).toFixed(1) + ' m)'],
       ['speed_cms', p.speed + '  (' + (p.speed*0.036).toFixed(2) + ' km/h)'],
       ['flags', p.flags + '  ' + flagNames(p.flags)], ['sats', p.sats], ['sacc_cms', p.sacc], ['ev_seq', p.evSeq],
-    ] : [['—','niciun pachet']];
+    ] : [['—','no packet']];
     $('rawTbl').innerHTML = rows.map(r => '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>').join('');
     const k = S.pkt, b = S.backup;
     const link = [
-      ['sursă', S.src ? S.src.label : '—'], ['INFO', S.info || '—'],
-      ['rată', (k.times.length/2).toFixed(1) + ' pachete/s'], ['primite', k.count], ['pierdute', k.lost],
-      ['vârsta ultimului', p ? Math.round(performance.now() - S.lastAt) + ' ms' : '—'],
-      ['distanță totală', (App.nowOdo()/1000).toFixed(1) + ' m'],
-      ['GPS telefon (paralel)', b ? (b.n ? (b.speed*3.6).toFixed(1) + ' km/h · ±' + Math.round(b.acc) + ' m · ' + (b.odo/1000).toFixed(0) + ' m' : (b.err || 'așteaptă fix')) : 'oprit'],
+      ['source', S.src ? S.src.label : '—'], ['INFO', S.info || '—'],
+      ['rate', (k.times.length/2).toFixed(1) + ' packets/s'], ['received', k.count], ['lost', k.lost],
+      ['last packet age', p ? Math.round(performance.now() - S.lastAt) + ' ms' : '—'],
+      ['total distance', (App.nowOdo()/1000).toFixed(1) + ' m'],
+      ['phone GPS (parallel)', b ? (b.n ? (b.speed*3.6).toFixed(1) + ' km/h · ±' + Math.round(b.acc) + ' m · ' + (b.odo/1000).toFixed(0) + ' m' : (b.err || 'waiting for fix')) : 'off'],
     ];
     $('linkTbl').innerHTML = link.map(r => '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>').join('');
-    $('evlist').textContent = S.evlog.join('\n') || '(niciun eveniment)';
+    $('evlist').textContent = S.evlog.join('\n') || '(no events)';
   }
   if (on('tStage')){
-    $('asNote').textContent = S.autostartT !== null ? 'Programat la ' + fmtClock(App.local(S.autostartT)) + (srcKind() === 'phone' ? ' (îl face aplicația, pe ceasul telefonului)' : ' (îl face cutia, pe timpul GPS)') : 'Neprogramat.';
+    const k = srcKind();
+    $('asNote').textContent = S.startT === null ? 'Not set.' :
+      'Set for ' + fmtClock(App.local(S.startT)) + (S.autoStart ? (k === 'phone' || !k ? ' · the app starts the stage (phone clock)' : ' · the box starts the stage (GPS time)') : ' · beeps only, you press START');
     const c = S.cal, meas = c.a === null ? null : ((c.b === null ? App.nowOdo() : c.b) - c.a) / 1000;
-    $('calMeas').textContent = meas === null ? '—' : meas.toFixed(1) + (c.b === null ? ' (în curs)' : '');
-    const off = parseFloat(String($('calOff').value).replace(',', '.'));
+    $('calMeas').textContent = meas === null ? '—' : meas.toFixed(1) + (c.b === null ? ' (running)' : '');
+    const off = num($('calOff').value);
     $('calK').textContent = (c.b !== null && meas > 0 && off > 0) ? (off*1000/meas).toFixed(4) : '—';
   }
   if (on('tSet')){
     $('offTxt').textContent = fmtOff(S.set.clockOffset);
-    if (t === null){ $('setClock').textContent = '--:--:--.-'; $('setClockRaw').textContent = 'fără sursă de timp: alege una din ☰ → Sursă'; }
+    if (t === null){ $('setClock').textContent = '--:--:--.-'; $('setClockRaw').textContent = 'no time source: pick one in ☰ → Source'; }
     else {
       $('setClock').textContent = fmtClock(App.local(t), true).slice(0, -2);
       const raw = modDay(t - new Date().getTimezoneOffset()*60000);
-      $('setClockRaw').textContent = 'ora aplicației (cu offset) · fără offset: ' + fmtClock(raw, true).slice(0, -2) + ' · sursa: ' + (S.src ? S.src.label : '—');
+      $('setClockRaw').textContent = 'app time (with offset) · without offset: ' + fmtClock(raw, true).slice(0, -2) + ' · source: ' + (S.src ? S.src.label : '—');
     }
-    $('clkKey').textContent = S.learnKey ? 'apasă clickerul…' : (S.set.clickKey || 'neînvățată');
+    $('clkKey').textContent = S.learnKey ? 'press the clicker…' : (S.set.clickKey || 'not learned');
   }
 }
 async function renderLogs(){
   let logs = [];
-  try { logs = (await DB.listLogs()).sort((a, b) => b.created - a.created); } catch(e){ $('logTbl').innerHTML = '<tr><td>Stocare indisponibilă: ' + e.message + '</td></tr>'; return; }
-  if (navigator.storage && navigator.storage.estimate){ const e = await navigator.storage.estimate(); $('logStore').textContent = 'folosit ' + (e.usage/1e6).toFixed(1) + ' MB'; }
+  try { logs = (await DB.listLogs()).sort((a, b) => b.created - a.created); } catch(e){ $('logTbl').innerHTML = '<tr><td>Storage unavailable: ' + e.message + '</td></tr>'; return; }
+  if (navigator.storage && navigator.storage.estimate){ const e = await navigator.storage.estimate(); $('logStore').textContent = 'used ' + (e.usage/1e6).toFixed(1) + ' MB'; }
   $('logTbl').innerHTML = logs.length ? logs.map(l => {
     const d = new Date(l.created);
-    return '<tr><td>' + d.toLocaleDateString('ro-RO') + ' ' + l.start + (l.id === Log.id ? ' <b>(în curs)</b>' : '') + '<br><span class="note">' + l.src + (l.device ? ' (' + l.device + ')' : '') + ' · ' +
+    return '<tr><td>' + d.toLocaleDateString() + ' ' + l.start + (l.id === Log.id ? ' <b>(running)</b>' : '') + '<br><span class="note">' + l.src + (l.device ? ' (' + l.device + ')' : '') + ' · ' +
       fmtDur(l.durS*1000).slice(0, -2) + ' · ' + (l.distM/1000).toFixed(3) + ' km · k ' + Number(l.k).toFixed(4) + '</span></td>' +
-      '<td><button class="s" data-ex="' + l.id + '|ev|0">Evenimente</button><button class="s" data-ex="' + l.id + '|ev|1">⇪</button></td>' +
-      '<td><button class="s" data-ex="' + l.id + '|c|0">Continuu</button><button class="s" data-ex="' + l.id + '|c|1">⇪</button></td>' +
-      '<td>' + (l.id === Log.id ? '' : '<button class="s" data-del="' + l.id + '">Șterge</button>') + '</td></tr>';
-  }).join('') : '<tr><td class="note">Niciun log încă. Un log începe la START.</td></tr>';
+      '<td><button class="s" data-ex="' + l.id + '|ev|0">Events</button><button class="s" data-ex="' + l.id + '|ev|1">⇪</button></td>' +
+      '<td><button class="s" data-ex="' + l.id + '|c|0">Continuous</button><button class="s" data-ex="' + l.id + '|c|1">⇪</button></td>' +
+      '<td>' + (l.id === Log.id ? '' : '<button class="s" data-del="' + l.id + '">Delete</button>') + '</td></tr>';
+  }).join('') : '<tr><td class="note">No logs yet. A log starts at START.</td></tr>';
 }
 
-/* ================= comenzi din interfață ================= */
+/* ================= UI commands ================= */
 function stopSource(){
   if (S.src){ S.src.stop(); S.src = null; }
   if (S.backup){ S.backup.stop(); S.backup = null; }
   S.gap = null; App.setLink('—', ''); $('simCtl').style.display = 'none';
 }
 function resetLinkState(){
-  // odometrul de probă continuă: noua sursă pornește de la distanța deja parcursă
+  // the stage odometer continues: the new source starts from the distance already driven
   if (S.odoRaw !== null){ S.odoTotal = Math.round(App.nowOdo()); }
   S.last = null; S.odoRaw = null; S.skews = []; S.t = null;
   S.pkt = { count:0, lost:0, lastSeq:null, times:[] }; S.lastEvSeq = S.stage.running && S.lastEvSeq !== null ? S.lastEvSeq : null;
@@ -1000,24 +1133,24 @@ function resetLinkState(){
 function startBackup(){ if (S.set.backup && PhoneGPS.supported()){ S.backup = new PhoneGPS(null); S.backup.start(); } }
 
 $('bleBtn').onclick = async () => {
-  if (!BleSource.supported()){ App.toast('Bluetooth web nu e disponibil aici (folosește Chrome pe Android)'); return; }
+  if (!BleSource.supported()){ App.toast('Web Bluetooth is not available here (use Chrome on Android)'); return; }
   stopSource(); resetLinkState();
   const b = new BleSource(App); S.src = b;
   try { startBackup(); await b.start(); $('panel').classList.remove('open'); }
-  catch(e){ stopSource(); App.toast(e.name === 'NotFoundError' ? 'Nicio cutie aleasă' : 'Eroare: ' + e.message); }
+  catch(e){ stopSource(); App.toast(e.name === 'NotFoundError' ? 'No box selected' : 'Error: ' + e.message); }
 };
-$('discBtn').onclick = () => { stopSource(); App.toast('Deconectat'); };
+$('discBtn').onclick = () => { stopSource(); App.toast('Disconnected'); };
 $('backupChk').checked = S.set.backup;
 $('backupChk').onchange = e => { S.set.backup = e.target.checked; saveSettings(); };
 $('phoneBtn').onclick = () => {
-  if (!PhoneGPS.supported()){ App.toast('Geolocația nu e disponibilă'); return; }
+  if (!PhoneGPS.supported()){ App.toast('Geolocation is not available'); return; }
   stopSource(); resetLinkState();
-  const s = new PhoneSource(App); S.src = s; s.start(); $('panel').classList.remove('open'); App.toast('Sursă: GPS telefon (aștept fix)');
+  const s = new PhoneSource(App); S.src = s; s.start(); $('panel').classList.remove('open'); App.toast('Source: phone GPS (waiting for fix)');
 };
 $('simBtn').onclick = () => {
   stopSource(); resetLinkState();
   const s = new SimSource(App); s.kind = 'sim'; S.src = s; s.target = +$('simSpd').value; s.start();
-  $('simCtl').style.display = 'block'; App.toast('Simulator pornit');
+  $('simCtl').style.display = 'block'; App.toast('Simulator started');
 };
 $('simSpd').oninput = e => { $('simSpdTxt').textContent = e.target.value; if (S.src instanceof SimSource) S.src.target = +e.target.value; };
 $('simBtnBox').onclick = () => S.src instanceof SimSource && S.src.button();
@@ -1026,120 +1159,190 @@ $('simLost40').onclick = () => S.src instanceof SimSource && S.src.loseSignal(40
 $('simReboot').onclick = () => S.src instanceof SimSource && S.src.reboot();
 $('simDropEv').onchange = e => { if (S.src instanceof SimSource) S.src.dropNext = e.target.checked; e.target.checked = false; };
 
-// START: momentul apăsării = atingerea ecranului (pointerdown), acțiunea la ridicarea degetului pe buton
+// START: the press moment is the touch (pointerdown); the action happens when the finger lifts on the button
 function pressAt(perf, how){
   const t = App.tAt(perf);
-  if (t === null){ App.toast('Fără timp: alege o sursă (☰ → Sursă)'); return; }
+  if (t === null){ App.toast('No time: pick a source (☰ → Source)'); return; }
   App.press(t, App.odoAt(perf), how);
 }
 $('startBtn').addEventListener('pointerdown', e => { S.downAt = e.timeStamp; });
-$('startBtn').onclick = e => { const at = S.downAt !== null && e.timeStamp - S.downAt < 2000 ? S.downAt : e.timeStamp; S.downAt = null; pressAt(at, 'ecran'); };
+$('startBtn').onclick = e => { const at = S.downAt !== null && e.timeStamp - S.downAt < 2000 ? S.downAt : e.timeStamp; S.downAt = null; pressAt(at, 'screen'); };
 $('resetBtn').onclick = async () => {
   if (!S.stage.running) return;
-  if (confirm('RESET: aduci proba la zero?')){
+  if (confirm('RESET: set the stage back to zero?')){
     const t = App.nowT(); if (t !== null) Log.event('RESET', t);
     await Log.end();
-    const old = S.stage; S.stage = Engine.create(old.k, Engine.curV(old));   // după RESET: abatere pe SEGMENT
-    store.del('tsd-stage'); App.toast('Probă resetată'); App.log('RESET');
+    const old = S.stage; S.stage = Engine.create(old.k, old.tt ? null : Engine.curV(old));   // after RESET: speed stage, deviation on SEGMENT
+    if (old.tt) S.stage.vimp0 = S.set.vimp;
+    S.cd = {}; store.del('tsd-stage'); App.toast('Stage reset'); App.log('RESET');
   }
 };
-function needStage(){ if (!S.stage.running){ App.toast('Mai întâi START'); return false; } return true; }
+function needStage(){ if (!S.stage.running){ App.toast('START first'); return false; } return true; }
 $('backBtn').onclick = () => {
   if (!needStage()) return;
   const on = Engine.toggleBack(S.stage, App.nowOdo()), t = App.nowT();
-  App.toast(on ? 'BACK activ: distanța scade' : 'BACK oprit'); App.log(on ? 'BACK pornit' : 'BACK oprit'); Log.event(on ? 'BACK_PORNIT' : 'BACK_OPRIT', t); saveStage();
+  App.toast(on ? 'BACK on: distance counts down' : 'BACK off'); App.log(on ? 'BACK on' : 'BACK off'); Log.event(on ? 'BACK_ON' : 'BACK_OFF', t); saveStage();
 };
 function corr(mm){
   if (!needStage()) return; const t = App.nowT(); if (t === null) return;
-  Engine.correct(S.stage, t, mm); App.toast((mm > 0 ? '+' : '−') + Math.abs(mm/1000) + ' m'); App.log('corecție ' + (mm/1000) + ' m');
-  Log.event('CORECTIE', t, { note:(mm/1000) + ' m' }); saveStage();
+  Engine.correct(S.stage, t, mm); App.toast((mm > 0 ? '+' : '−') + Math.abs(mm/1000) + ' m'); App.log('correction ' + (mm/1000) + ' m');
+  Log.event('CORRECTION', t, { note:(mm/1000) + ' m' }); saveStage();
 }
 $('m10Btn').onclick = () => corr(-10000);
 $('p10Btn').onclick = () => corr(10000);
-$('modeBtn').onclick = () => { S.stage.mode = S.stage.mode === 'SEGMENT' ? 'PROBA' : 'SEGMENT'; saveStage(); };
+$('modeBtn').onclick = () => {
+  if (S.stage.tt){ App.toast('Time stage: change it in ☰ → Stage'); return; }
+  S.stage.mode = S.stage.mode === 'SEGMENT' ? 'PROBA' : 'SEGMENT'; saveStage();
+};
 function setK(v){
-  if (!(v > 0.9 && v < 1.1)){ App.toast('k trebuie să fie între 0,9 și 1,1'); return false; }
+  if (!(v > 0.9 && v < 1.1)){ App.toast('k must be between 0.9 and 1.1'); return false; }
   S.stage.k = S.set.k = Math.round(v * 10000) / 10000; saveSettings(); App.log('k = ' + S.stage.k.toFixed(4)); return true;
 }
 $('kBtn').onclick = () => {
-  if (S.stage.running){ App.toast('k se schimbă doar înainte de START'); return; }
-  openNum('Coeficient de calibrare k', S.stage.k.toFixed(4), setK);
+  if (S.stage.running){ App.toast('k can only be changed before START'); return; }
+  openNum('Calibration coefficient k', S.stage.k.toFixed(4), setK);
 };
 const vimpEl = $('vimp');
+function setVimp(v, exact){
+  const r = exact ? v : Math.round(v * 10) / 10;
+  if (Engine.curV(S.stage) === r) return;
+  Engine.setV(S.stage, r); S.set.vimp = r; saveSettings(); saveStage();
+  App.log('V_imp = ' + fmtV(r) + (S.stage.running ? ' (segment ' + S.stage.segs.length + ')' : ''));
+  const t = App.nowT(); if (S.stage.running && t !== null) Log.event('VIMP', t, { note:fmtV(r) });
+}
 function applyVimp(){
-  const v = parseFloat(String(vimpEl.value).replace(',','.'));
-  if (isFinite(v) && v >= 1 && v <= 200){
-    const r = Math.round(v * 10) / 10; vimpEl.value = r.toFixed(1);
-    if (Engine.curV(S.stage) !== r){
-      Engine.setV(S.stage, r); S.set.vimp = r; saveSettings(); saveStage();
-      App.log('V_imp = ' + r.toFixed(1) + (S.stage.running ? ' (segment ' + S.stage.segs.length + ')' : ''));
-      const t = App.nowT(); if (S.stage.running && t !== null) Log.event('V_IMP', t, { note:r.toFixed(1) });
-    }
-  } else { const c = Engine.curV(S.stage); vimpEl.value = c ? c.toFixed(1) : ''; }
+  if (S.stage.tt) return;
+  const v = num(vimpEl.value);
+  if (v !== null && v >= 1 && v <= 200){ setVimp(v, false); vimpEl.value = fmtV(Engine.curV(S.stage)); }
+  else { const c = Engine.curV(S.stage); vimpEl.value = c ? fmtV(c) : ''; }
 }
 vimpEl.addEventListener('change', applyVimp);
 vimpEl.addEventListener('keydown', e => { if (e.key === 'Enter') vimpEl.blur(); });
-vimpEl.addEventListener('focus', () => setTimeout(() => vimpEl.select(), 0));
+vimpEl.addEventListener('focus', () => { if (S.stage.tt){ vimpEl.blur(); App.toast('Time stage: V_imp comes from distance and time (☰ → Stage)'); return; } setTimeout(() => vimpEl.select(), 0); });
 function openNum(title, value, cb){
   $('numTitle').textContent = title; const inp = $('numInput'); inp.value = value;
   $('numDlg').classList.add('open'); setTimeout(() => { inp.focus(); inp.select(); }, 50);
-  $('numOk').onclick = () => { $('numDlg').classList.remove('open'); cb(parseFloat(String(inp.value).replace(',','.'))); };
+  $('numOk').onclick = () => { $('numDlg').classList.remove('open'); cb(num(inp.value)); };
   $('numCancel').onclick = () => $('numDlg').classList.remove('open');
 }
 
-// autostart
-function parseLocal(str){                                    // „HH:MM:SS” local → timp absolut (ms), în viitor
-  const m = /^(\d{1,2})[:.](\d{2})(?:[:.](\d{2}))?$/.exec(str.trim()); if (!m) return null;
-  const localMs = ((+m[1])*3600 + (+m[2])*60 + (+(m[3]||0))) * 1000;
-  const now = App.nowT(); if (now === null) return null;
+// calculator: distance · time · average speed — any two give the third
+const CALC = { D:'cD', T:'cT', V:'cV' };
+function calcRead(){
+  const D = num($('cD').value), T = parseDuration($('cT').value), V = num($('cV').value);
+  return { D: D > 0 ? D : null, T: T > 0 ? T : null, V: V > 0 ? V : null };
+}
+function calcUpdate(edited){
+  const o = S.calc.order.filter(x => x !== edited); if (edited) o.push(edited); S.calc.order = o.slice(-2);
+  for (const k in CALC) $(CALC[k]).classList.remove('computed');
+  if (S.calc.order.length < 2) { $('calcNote').textContent = ''; return; }
+  const target = ['D','T','V'].find(k => !S.calc.order.includes(k)), x = calcRead();
+  let out = null;
+  if (target === 'V' && x.D && x.T) out = (x.D) / (x.T / 3.6e6);
+  if (target === 'T' && x.D && x.V) out = x.D / x.V * 3.6e6;
+  if (target === 'D' && x.T && x.V) out = x.V * x.T / 3.6e6;
+  const el = $(CALC[target]);
+  if (out === null || !isFinite(out)){ $('calcNote').textContent = ''; return; }
+  el.value = target === 'V' ? out.toFixed(3) : target === 'D' ? out.toFixed(3) : fmtDurInput(out);
+  el.classList.add('computed');
+  S.calc.exact = { target, value: out };
+  $('calcNote').textContent = '';
+}
+function fmtDurInput(ms){                                  // hh.mm.ss or hh.mm.ss.c
+  ms = Math.round(ms / 100) * 100; const s = Math.floor(ms / 1000), c = Math.round((ms % 1000) / 100);
+  return String(Math.floor(s/3600)).padStart(2,'0') + '.' + String(Math.floor(s/60)%60).padStart(2,'0') + '.' + String(s%60).padStart(2,'0') + (c ? '.' + c : '');
+}
+for (const k in CALC) $(CALC[k]).addEventListener('input', () => calcUpdate(k));
+// the exact values behind the three fields (a computed field keeps full precision)
+function calcValues(){
+  const x = calcRead(), e = S.calc.exact;
+  if (e && S.calc.order.length === 2 && !S.calc.order.includes(e.target)) x[e.target] = e.value;
+  if (x.D && x.T && !x.V) x.V = x.D / (x.T / 3.6e6);
+  return x;
+}
+$('speedStageBtn').onclick = () => {
+  const x = calcValues();
+  if (!x.V){ App.toast('Enter the average speed, or distance and time'); return; }
+  if (!(x.V >= 1 && x.V <= 200)){ App.toast('Average speed out of range'); return; }
+  const st = S.stage;
+  if (st.tt){ if (st.running && st.segs.length > 1){ App.toast('RESET first'); return; } st.tt = null; Log.event('SPEED_STAGE', App.nowT() ?? Date.now()); }
+  setVimp(x.V, true); App.toast('Speed stage · V_imp ' + fmtV(x.V)); $('panel').classList.remove('open');
+};
+$('timeStageBtn').onclick = () => {
+  const x = calcValues();
+  if (!(x.D && x.T)){ App.toast('Enter distance and time (or one of them and the average speed)'); return; }
+  const st = S.stage;
+  if (st.running && st.segs.length > 1){ App.toast('RESET first: the stage has segments'); return; }
+  const D = x.D || x.V * (x.T / 3.6e6), T = x.T || x.D / x.V * 3.6e6;
+  st.tt = { D: Math.round(D * 1e6), T: Math.round(T) };
+  const v = Engine.ttSpeed(st.tt);
+  st.vimp0 = v; if (st.running) st.segs[0].v = v;
+  S.cd.tt = undefined; saveStage();
+  const t = App.nowT(); if (st.running && t !== null) Log.event('TIME_STAGE', t, { note:(D).toFixed(3) + ' km / ' + fmtDur(T) });
+  App.log('time stage ' + D.toFixed(3) + ' km in ' + fmtDur(T) + ' (' + v.toFixed(3) + ' km/h)');
+  App.toast('Time stage · ' + D.toFixed(3) + ' km in ' + fmtDur(T).slice(0, -2)); $('panel').classList.remove('open');
+};
+
+// start time
+function startTimeFrom(str){                                   // local clock → absolute time (ms), in the future
+  const localMs = parseClock(str); if (localMs === null) return null;
+  const now = App.nowT() ?? Date.now();
   let t = App.toT(modDay(localMs + new Date().getTimezoneOffset()*60000 - S.set.clockOffset));
   while (t < now - 1000) t += DAY; while (t > now + DAY) t -= DAY;
   return t;
 }
 $('asSend').onclick = () => {
-  const t = parseLocal($('asTime').value);
-  if (t === null){ App.toast('Oră invalidă sau fără sursă de timp'); return; }
-  S.autostartT = t; if (srcKind() !== 'phone') App.sendAutostart(t);
-  App.toast('Autostart: ' + fmtClock(App.local(t))); App.log('autostart programat ' + fmtClock(App.local(t))); saveStage();
+  Sound.unlock();
+  const t = startTimeFrom($('asTime').value);
+  if (t === null){ App.toast('Invalid time: use hh.mm.ss'); return; }
+  S.startT = t; S.autoStart = $('asAuto').checked; S.cd.start = undefined;
+  const k = srcKind(); if (S.autoStart && k && k !== 'phone') App.sendAutostart(t);
+  $('asTime').value = fmtClock(App.local(t)).replace(/:/g, '.');
+  App.toast('Start ' + fmtClock(App.local(t)) + (S.autoStart ? ' (auto)' : ' (beeps only)')); App.log('start time set ' + fmtClock(App.local(t))); saveStage();
 };
-$('asCancel').onclick = () => { S.autostartT = null; if (srcKind() && srcKind() !== 'phone') App.send(encodeCmd(CMD.SET_AUTOSTART, 0xffffffff)); App.toast('Autostart anulat'); };
+$('asCancel').onclick = () => { const was = S.startT !== null && S.autoStart; S.startT = null; if (was && srcKind() && srcKind() !== 'phone') App.send(encodeCmd(CMD.SET_AUTOSTART, 0xffffffff)); App.toast('Start time cancelled'); };
 $('rpSend').onclick = () => App.send(encodeCmd(CMD.REPLAY, Math.max(1, Math.min(255, parseInt($('rpSeq').value) || 1))));
 $('thSend').onclick = () => App.send(encodeCmd(CMD.SET_STOP, Math.max(0, Math.min(65535, parseInt($('thVal').value) || 14))));
 
-// calibrare
-$('calStart').onclick = () => { if (App.nowT() === null){ App.toast('Fără sursă'); return; } S.cal = { a:App.nowOdo(), b:null }; App.log('calibrare: început'); };
-$('calEnd').onclick = () => { if (S.cal.a === null){ App.toast('Apasă întâi „Început”'); return; } S.cal.b = App.nowOdo(); App.log('calibrare: sfârșit, ' + ((S.cal.b - S.cal.a)/1000).toFixed(1) + ' m'); };
+// calibration
+$('calStart').onclick = () => { if (App.nowT() === null){ App.toast('No source'); return; } S.cal = { a:App.nowOdo(), b:null }; App.log('calibration: begin'); };
+$('calEnd').onclick = () => { if (S.cal.a === null){ App.toast('Press “Begin” first'); return; } S.cal.b = App.nowOdo(); App.log('calibration: end, ' + ((S.cal.b - S.cal.a)/1000).toFixed(1) + ' m'); };
 $('calApply').onclick = () => {
-  const c = S.cal, meas = c.a !== null && c.b !== null ? (c.b - c.a)/1000 : 0, off = parseFloat(String($('calOff').value).replace(',', '.'));
-  if (!(meas > 100 && off > 0)){ App.toast('Măsoară un tronson (peste 100 m) și introdu distanța oficială'); return; }
-  if (S.stage.running){ App.toast('k se schimbă doar înainte de START'); return; }
+  const c = S.cal, meas = c.a !== null && c.b !== null ? (c.b - c.a)/1000 : 0, off = num($('calOff').value);
+  if (!(meas > 100 && off > 0)){ App.toast('Measure a section (over 100 m) and enter the official distance'); return; }
+  if (S.stage.running){ App.toast('k can only be changed before START'); return; }
   if (setK(off*1000/meas)) App.toast('k = ' + S.stage.k.toFixed(4));
 };
 
-// loguri
+// logs
 $('logRefresh').onclick = renderLogs;
 $('logTbl').onclick = async e => {
   const ex = e.target.dataset.ex, del = e.target.dataset.del;
-  if (ex){ await Log.flush(); const [id, kind, share] = ex.split('|'); exportCsv(id, kind, share === '1').catch(err => App.toast('Export eșuat: ' + err.message)); }
-  if (del && confirm('Ștergi logul?')){ await DB.del(del); renderLogs(); }
+  if (ex){ await Log.flush(); const [id, kind, share] = ex.split('|'); exportCsv(id, kind, share === '1').catch(err => App.toast('Export failed: ' + err.message)); }
+  if (del && confirm('Delete this log?')){ await DB.del(del); renderLogs(); }
 };
 $('logDelAll').onclick = async () => {
-  if (!confirm('Ștergi toate logurile (mai puțin cel în curs)?')) return;
+  if (!confirm('Delete all logs (except the running one)?')) return;
   for (const l of await DB.listLogs()) if (l.id !== Log.id) await DB.del(l.id);
   renderLogs();
 };
+for (const r of document.querySelectorAll('input[name=csvFmt]')){ r.checked = r.value === S.set.csv; r.onchange = () => { S.set.csv = r.value; saveSettings(); }; }
 
-// ceas
+// clock
 for (const b of document.querySelectorAll('[data-off]')) b.onclick = () => {
   const d = +b.dataset.off; S.set.clockOffset = d === 0 ? 0 : S.set.clockOffset + d; saveSettings();
 };
-// clicker Bluetooth (se vede ca o tastatură)
-$('clkLearn').onclick = () => { S.learnKey = true; App.toast('Apasă butonul clickerului'); };
+// sound
+$('soundChk').checked = S.set.sound;
+$('soundChk').onchange = e => { S.set.sound = e.target.checked; saveSettings(); if (S.set.sound) Sound.unlock(); };
+$('soundTest').onclick = () => { Sound.unlock(); Sound.short(); setTimeout(() => Sound.short(), 1000); setTimeout(() => Sound.long(), 2000); };
+// Bluetooth clicker (seen as a keyboard)
+$('clkLearn').onclick = () => { S.learnKey = true; App.toast('Press the clicker button'); };
 $('clkForget').onclick = () => { S.set.clickKey = null; saveSettings(); };
 document.addEventListener('keydown', e => {
   const k = e.key === ' ' ? 'Space' : e.key;
   $('clkLast').textContent = k + ' (' + e.code + ')';
-  if (S.learnKey){ S.learnKey = false; S.set.clickKey = k; saveSettings(); App.toast('Tasta „' + k + '” = START/MARK'); e.preventDefault(); return; }
+  if (S.learnKey){ S.learnKey = false; S.set.clickKey = k; saveSettings(); App.toast('Key “' + k + '” = START/MARK'); e.preventDefault(); return; }
   const tag = (document.activeElement && document.activeElement.tagName) || '';
   if (tag === 'INPUT' || tag === 'TEXTAREA') return;
   if (S.set.clickKey && k === S.set.clickKey){
@@ -1160,13 +1363,13 @@ setTheme(S.set.theme || 'day');
 $('themeBtn').onclick = () => setTheme(document.documentElement.dataset.theme === 'night' ? 'day' : 'night');
 $('fsBtn').onclick = async () => { try { await document.documentElement.requestFullscreen(); await screen.orientation.lock('landscape'); } catch(e){} };
 $('ver').textContent = VERSION;
-$('bleNote').textContent = BleSource.supported() ? 'Cutia trebuie să fie alimentată; alegi „TSD-BOX” din listă.'
-  : 'Bluetooth web nu e disponibil în acest browser. Folosește Chrome pe Android (sau telefonul / simulatorul).';
+$('bleNote').textContent = BleSource.supported() ? 'The box must be powered; pick “TSD-BOX” from the list.'
+  : 'Web Bluetooth is not available in this browser. Use Chrome on Android (or the phone / simulator).';
 
-/* ================= ecran aprins, baterie, offline ================= */
+/* ================= screen on, battery, offline ================= */
 let wakeLock = null;
 async function keepAwake(){ try { if ('wakeLock' in navigator && !wakeLock){ wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => wakeLock = null); } } catch(e){} }
-document.addEventListener('pointerdown', keepAwake);
+document.addEventListener('pointerdown', () => { keepAwake(); Sound.unlock(); });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') keepAwake(); else { saveStage(); Log.flush(); } });
 window.addEventListener('pagehide', () => { saveStage(); Log.flush(); });
 if (navigator.getBattery) navigator.getBattery().then(b => {
@@ -1176,10 +1379,10 @@ if (navigator.getBattery) navigator.getBattery().then(b => {
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
-if (restoreStage()){ App.toast('Probă reluată: alege sursa (☰ → Sursă)'); App.log('probă reluată după repornirea aplicației'); }
+if (restoreStage()){ App.toast('Stage resumed: pick the source (☰ → Source)'); App.log('stage resumed after the app restarted'); }
 setInterval(tick, 50);
 render();
-window.TSD = { S, App, Engine, PhoneGPS, PhoneSource, SimSource, Log, DB, decodeData, encodeData, decodeEvent, encodeEvent, encodeCmd, saveStage, restoreStage, hav };
+window.TSD = { S, App, Engine, PhoneGPS, PhoneSource, SimSource, Log, DB, Sound, decodeData, encodeData, decodeEvent, encodeEvent, encodeCmd, saveStage, restoreStage, hav, parseDuration, parseClock, countdown };
 </script>
 </body>
 </html>
