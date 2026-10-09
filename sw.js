@@ -1,6 +1,7 @@
+// TSD Rally · Required Notice: Copyright (C) 2026 Cristian Popa (op_cris@yahoo.com) · PolyForm Noncommercial 1.0.0 (see LICENSE)
 // Funcționare fără internet: fișierele aplicației se salvează pe telefon la prima deschidere.
 // La fiecare versiune nouă se schimbă CACHE, iar versiunea veche se șterge.
-const CACHE = 'tsd-0.7.0';
+const CACHE = 'tsd-0.7.1';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {

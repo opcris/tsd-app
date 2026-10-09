@@ -1,4 +1,13 @@
 <!doctype html>
+<!--
+  TSD Rally · regularity rally app
+  Required Notice: Copyright (C) 2026 Cristian Popa (op_cris@yahoo.com)
+
+  Licensed under the PolyForm Noncommercial License 1.0.0 (see the LICENSE file or
+  <https://polyformproject.org/licenses/noncommercial/1.0.0>). Free for any noncommercial use;
+  commercial use, including selling it or using it in a paid product or service, is not permitted
+  without a separate licence from the author. Provided as is, without any warranty.
+-->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -29,6 +38,8 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
 #status{display:flex;align-items:center;gap:clamp(6px,1.8vw,20px);min-width:0;overflow:hidden;padding:4px 0;border-bottom:1px solid var(--line);
   font-size:clamp(11px,3.3vh,16px);color:var(--mute);white-space:nowrap}
 #status b{color:var(--ink);font-weight:600}
+#status>span{min-width:0;overflow:hidden;text-overflow:ellipsis;flex-shrink:1}
+#status>#clock{flex-shrink:0}
 #clock{background:var(--edit);color:var(--edit-ink);padding:1px 6px;border-radius:4px;font-weight:700}
 .st-bad{color:var(--warn)!important}
 .st-ok{color:var(--ok)!important}
@@ -123,6 +134,8 @@ table.raw td:first-child{color:var(--mute)}
 #dLeftWrap{margin-left:auto;display:none;flex-direction:column;align-items:flex-end;line-height:1;align-self:center}
 #dLeftWrap .lbl{min-width:0;font-size:clamp(10px,3vh,15px)}
 .ttTag{color:var(--edit-ink);background:var(--edit);border-radius:4px;padding:0 6px;font-weight:700}
+#tSet a{color:inherit;text-decoration:underline}
+.ttArm{border:1px dashed currentColor;border-radius:4px;padding:0 5px;font-weight:700;color:var(--ink)}
 .calc{display:grid;grid-template-columns:auto auto auto;gap:6px 10px;align-items:center;margin:6px 0}
 .calc input{width:8.5em;font-size:20px}
 .calc input.computed{background:var(--edit);color:var(--edit-ink);font-style:italic}
@@ -288,6 +301,8 @@ table.raw td:first-child{color:var(--mute)}
       <button class="s" id="fsBtn">Full screen</button>
       <h3>About</h3>
       <p>TSD Rally · version <b id="ver"></b> · protocol 1</p>
+      <p>© 2026 Cristian Popa · <a href="mailto:op_cris@yahoo.com">op_cris@yahoo.com</a></p>
+      <p class="note">Licence: <a href="https://polyformproject.org/licenses/noncommercial/1.0.0" target="_blank" rel="noopener">PolyForm Noncommercial 1.0.0</a>. Free for noncommercial use; commercial use only with the author's permission. No warranty. <span id="srcLink"></span></p>
       <p class="note">Deviation: plus = late, minus = early. The stage is saved automatically and resumes if the app closes.</p>
     </div>
   </div>
@@ -299,7 +314,7 @@ table.raw td:first-child{color:var(--mute)}
 <div id="rotate">Turn the phone to landscape.</div>
 <script>
 'use strict';
-const VERSION = '0.7.0';
+const VERSION = '0.7.1';
 
 /* ================= protocol (spec v1.3, section 10) ================= */
 const UUID = {
@@ -465,23 +480,41 @@ class SimSource {
 // Units: t in ms (continuous UTC time), odo in mm (continuous uncalibrated odometer), v in km/h.
 // Sign: plus = late (more time than ideal), minus = early.
 const Engine = {
-  create(k, vimp){ return { running:false, k: k || 1, vimp0: vimp || null, segs:[], corr:[], back:[], backOpen:null, mode:'SEGMENT', tt:null }; },
+  // arm: a time stage set up and waiting for the next START/MARK; it then becomes a segment with tt
+  create(k, vimp){ return { running:false, k: k || 1, vimp0: vimp || null, segs:[], corr:[], back:[], backOpen:null, mode:'SEGMENT', arm:null }; },
   // time stage: tt = { D: set distance (mm), T: set time (ms) }; exact speed D/T, no rounding
   ttSpeed(tt){ return (tt.D / 1e6) / (tt.T / 3.6e6); },
+  ttSeg(tt, t, odo, vAfter){ return { t, odo, v: Engine.ttSpeed(tt), tt, vAfter }; },
+  activeTT(st){ if (!st.running) return null; const l = st.segs[st.segs.length-1]; return l.tt ? l : null; },
+  speedAfter(st){ const l = st.segs[st.segs.length-1]; return l.tt ? l.vAfter : l.v; },   // the speed-stage V_imp to come back to
 
-  start(st, t, odo){ st.running = true; st.segs = [{ t, odo, v: st.vimp0 }]; st.corr = []; st.back = []; st.backOpen = null; },
+  start(st, t, odo){
+    st.running = true; st.corr = []; st.back = []; st.backOpen = null;
+    st.segs = [st.arm ? Engine.ttSeg(st.arm, t, odo, st.vimp0) : { t, odo, v: st.vimp0 }]; st.arm = null;
+  },
+  // MARK with a time stage armed: the time stage starts here (an active one is replaced: false start)
+  startTT(st, t, odo){
+    if (!st.running || !st.arm || t <= st.segs[st.segs.length-1].t) return false;
+    st.segs.push(Engine.ttSeg(st.arm, t, odo, Engine.speedAfter(st))); st.arm = null; return true;
+  },
+  // MARK during a time stage: it ends here and the speed stage resumes with the V_imp from before
+  endTT(st, t, odo){
+    const a = Engine.activeTT(st); if (!a || t <= a.t) return false;
+    st.segs.push({ t, odo, v: a.vAfter }); return true;
+  },
 
   // MARK: the new segment starts at (t, odo); inserted in time order (events recovered by REPLAY may arrive late)
   restart(st, t, odo){
     if (!st.running || t < st.segs[0].t) return false;
     if (st.segs.some(s => s.t === t)) return false;
     let i = st.segs.length; while (i > 0 && st.segs[i-1].t > t) i--;
-    st.segs.splice(i, 0, { t, odo, v: st.segs[i-1].v });     // inherits the previous segment's speed
+    const p = st.segs[i-1];
+    st.segs.splice(i, 0, { t, odo, v: p.tt ? p.vAfter : p.v });     // inherits the previous segment's speed
     return true;
   },
 
   // V_imp applies retroactively to the current segment (from the last MARK); before START it becomes the first segment's speed
-  setV(st, v){ if (st.running) st.segs[st.segs.length-1].v = v; else st.vimp0 = v; },
+  setV(st, v){ if (Engine.activeTT(st)) return; if (st.running) st.segs[st.segs.length-1].v = v; else st.vimp0 = v; },
   curV(st){ return st.running ? st.segs[st.segs.length-1].v : st.vimp0; },
 
   correct(st, t, mm){ if (st.running) st.corr.push({ t, mm }); },
@@ -523,12 +556,12 @@ const Engine = {
     let tDev = null, dDev = null;
     if (v > 0){
       const idealInt = 3.6 * (dInt / 1000) / v;
-      if (st.mode === 'SEGMENT') tDev = tInt / 1000 - idealInt;
+      if (st.mode === 'SEGMENT' || last.tt) tDev = tInt / 1000 - idealInt;     // a time stage always shows its own deviation
       else if (ok) tDev = tGen / 1000 - (idealClosed + idealInt);
       if (tDev !== null) dDev = tDev * v / 3.6 * 1000;          // mm, same sign: plus = metres to make up
     }
     const out = { tGen, tInt, dGen, dInt, tDev, dDev, v, seg: n, back: st.backOpen !== null };
-    if (st.tt){ out.tLeft = st.tt.T - tGen; out.dLeft = st.tt.D - dGen; }
+    if (last.tt){ out.tt = true; out.tLeft = last.tt.T - tInt; out.dLeft = last.tt.D - dInt; }
     return out;
   },
 };
@@ -881,15 +914,28 @@ const App = {
     const st = S.stage;
     if (!fromBox){ if (t - S.lastPress < 300) return; S.lastPress = t; }     // debounce for screen and clicker
     if (!st.running){
+      const arm = st.arm;
       Engine.start(st, t, odo); Log.begin(t);
-      Log.event('START', t, { note:how + ' · ' + DEVICE + ' · v' + VERSION + (st.tt ? ' · time stage ' + (st.tt.D/1e6).toFixed(3) + ' km / ' + fmtDur(st.tt.T) : '') });
-      this.toast('START (' + how + ')'); this.log('START (' + how + ')  ' + fmtClock(this.local(t), true)); saveStage(); return;
+      Log.event('START', t, { note:how + ' · ' + DEVICE + ' · v' + VERSION + (arm ? ' · time stage ' + ttTxt(arm) : '') });
+      if (arm) S.cd.tt = undefined;
+      this.toast('START (' + how + ')' + (arm ? ' · time stage' : '')); this.log('START (' + how + ')  ' + fmtClock(this.local(t), true)); saveStage(); return;
     }
-    if (st.tt){                                                  // time stage: MARK restarts the stage (navigator's call)
-      if (t <= st.segs[0].t) return;
-      Engine.start(st, t, odo); Log.event('TIME_STAGE_RESTART', t, { note:how });
+    if (st.arm){                                                 // armed time stage: this press starts it
+      const arm = st.arm, was = Engine.activeTT(st);
+      if (!Engine.startTT(st, t, odo)){ this.log('press ignored (before the last MARK): ' + fmtClock(this.local(t), true)); return; }
+      Log.event(was ? 'TIME_STAGE_RESTART' : 'TIME_STAGE_START', t, { note:how + ' · ' + ttTxt(arm) });
       S.cd.tt = undefined;
-      this.toast('Time stage restarted (' + how + ')'); this.log('time stage restarted (' + how + ')  ' + fmtClock(this.local(t), true)); saveStage(); return;
+      this.toast((was ? 'Time stage restarted' : 'Time stage started') + ' (' + how + ')'); this.log('time stage ' + (was ? 'restarted' : 'started') + ' (' + how + ')  ' + fmtClock(this.local(t), true)); saveStage(); return;
+    }
+    const a = Engine.activeTT(st);
+    if (a){                                                      // MARK during a time stage: it ends, the speed stage resumes
+      if (t <= a.t) return;
+      const segDur = (t - a.t)/1000, segDist = (Engine.D(st, odo, t) - Engine.D(st, a.odo, a.t))/1000;
+      const tLeft = a.tt.T/1000 - segDur, dLeft = a.tt.D/1e6 - segDist/1000;      // s, km (segDist is in m)
+      const res = 'T_left ' + (tLeft < 0 ? '−' : '+') + Math.abs(tLeft).toFixed(1) + ' s · D_left ' + (dLeft < 0 ? '−' : '+') + Math.abs(dLeft).toFixed(3) + ' km';
+      Log.event('TIME_STAGE_END', t, { segDur, segDist, segAvg: segDur > 0 ? segDist/segDur*3.6 : null, note:how + ' · ' + res });
+      Engine.endTT(st, t, odo); S.cd.tt = undefined;
+      this.toast('Time stage ended · ' + res); this.log('time stage ended (' + how + ')  ' + fmtClock(this.local(t), true) + '  ' + res); saveStage(); return;
     }
     const prev = st.segs.filter(s => s.t < t).pop();
     if (Engine.restart(st, t, odo)){
@@ -919,7 +965,9 @@ function restoreStage(){
   const x = store.get('tsd-stage', null);
   if (!x || x.v !== 1 || !x.stage || !x.stage.running) return false;
   if (Date.now() - x.saved > 12*3600*1000){ store.del('tsd-stage'); return false; }   // older than 12 h: not resumed
-  S.stage = x.stage; if (S.stage.tt === undefined) S.stage.tt = null;
+  S.stage = x.stage;
+  if (S.stage.tt){ Object.assign(S.stage.segs[0], { tt:S.stage.tt, v:Engine.ttSpeed(S.stage.tt), vAfter:S.set.vimp || null }); }   // 0.7.0 format
+  delete S.stage.tt; if (S.stage.arm === undefined) S.stage.arm = null;
   S.odoTotal = x.odoTotal; S.lastEvSeq = x.lastEvSeq; x.seen.forEach(k => S.seenEv.add(k));
   S.startT = x.startT ?? x.autostartT ?? null; S.autoStart = x.autoStart ?? true;
   if (x.kind === 'box' && x.odoRaw !== null) S.resumeRaw = x.odoRaw;
@@ -942,6 +990,7 @@ function fmtDur(ms){                                      // H:MM:SS.z
   const z = Math.floor(ms/100) % 10, s = Math.floor(ms/1000);
   return Math.floor(s/3600) + ':' + String(Math.floor(s/60)%60).padStart(2,'0') + ':' + String(s%60).padStart(2,'0') + '.' + z;
 }
+function ttTxt(tt){ return (tt.D/1e6).toFixed(3) + ' km / ' + fmtDur(tt.T); }
 function fmtLeft(ms){                                     // countdown; after zero shows −H:MM:SS.z
   if (ms >= 0) return fmtDur(Math.ceil(ms/100)*100);
   return '−' + fmtDur(-ms);
@@ -990,7 +1039,7 @@ function tick(){
   }
   // countdown beeps: start time, and the end of a time stage
   countdown('start', S.startT, t);
-  countdown('tt', S.stage.running && S.stage.tt ? S.stage.segs[0].t + S.stage.tt.T : null, t);
+  const att = Engine.activeTT(S.stage); countdown('tt', att ? att.t + att.tt.T : null, t);
   // start time reached
   if (S.startT !== null && t !== null && t >= S.startT){
     if (!S.autoStart){ if (t - S.startT > 1500) S.startT = null; }              // beeps only: forget it after the long beep
@@ -1015,31 +1064,32 @@ function render(){
   else if (p.flags & FLAG.EST){ g.textContent = 'EST'; g.className = 'st-est'; }
   else { g.textContent = 'no fix'; g.className = 'st-bad'; }
   const st = S.stage;
-  $('stArm').innerHTML = (st.tt ? '<span class="ttTag">TIME STAGE</span> ' : '') +
+  const a = Engine.activeTT(st), tts = a ? a.tt : (!st.running ? st.arm : null);     // time stage shown on screen (running, or armed before START)
+  $('stArm').innerHTML = (a ? '<span class="ttTag">TIME STAGE</span> ' : '') + (st.arm ? '<span class="ttArm" title="time stage armed: the next START/MARK starts it">⏱ next</span> ' : '') +
     (S.startT !== null ? 'Start <b>' + fmtClock(App.local(S.startT)) + '</b>' + (S.autoStart ? ' auto' : ' ♪') : '');
   $('vInst').textContent = S.gap ? (S.backup.speed*3.6).toFixed(1) : fresh ? (p.speed * 0.036).toFixed(1) : '—';
 
   const r = (st.running && t !== null) ? Engine.compute(st, t, App.nowOdo()) : null;
-  $('tIntLbl').textContent = st.tt ? 'T_left' : 'T_int';
+  $('tIntLbl').textContent = tts ? 'T_left' : 'T_int';
   if (r){
     $('tGen').textContent = fmtDur(r.tGen);
-    $('tInt').textContent = st.tt ? fmtLeft(r.tLeft) : fmtDur(r.tInt);
-    $('tInt').className = 'val num' + (st.tt && r.tLeft < 0 ? ' late' : '');
+    $('tInt').textContent = a ? fmtLeft(r.tLeft) : fmtDur(r.tInt);
+    $('tInt').className = 'val num' + (a && r.tLeft < 0 ? ' late' : '');
     $('dGen').textContent = fmtKm(r.dGen);  $('dInt').textContent = fmtKm(r.dInt);
     $('vmGen').textContent = fmtAvg(r.dGen, r.tGen); $('vmInt').textContent = fmtAvg(r.dInt, r.tInt);
-    $('startTxt').textContent = 'MARK'; $('startSub').textContent = st.tt ? 'restarts the stage' : 'segment ' + r.seg;
+    $('startTxt').textContent = 'MARK'; $('startSub').textContent = st.arm ? (a ? 'restarts time stage' : 'starts time stage') : a ? 'ends time stage' : 'segment ' + r.seg;
   } else {
     for (const id of ['tGen','dGen','dInt','vmGen','vmInt']) $(id).textContent = '—';
-    $('tInt').textContent = st.tt ? fmtLeft(st.tt.T) : '—'; $('tInt').className = 'val num';
-    $('startTxt').textContent = 'START'; $('startSub').textContent = 'then MARK';
+    $('tInt').textContent = tts ? fmtLeft(tts.T) : '—'; $('tInt').className = 'val num';
+    $('startTxt').textContent = 'START'; $('startSub').textContent = st.arm ? 'starts time stage' : 'then MARK';
   }
-  const dl = $('dLeftWrap'); dl.style.display = st.tt ? 'flex' : 'none';
-  if (st.tt) $('dLeft').textContent = (r ? (r.dLeft < 0 ? '−' : '') + fmtKm(Math.abs(r.dLeft)) : fmtKm(st.tt.D));
+  const dl = $('dLeftWrap'); dl.style.display = tts ? 'flex' : 'none';
+  if (tts) $('dLeft').textContent = (a && r ? (r.dLeft < 0 ? '−' : '') + fmtKm(Math.abs(r.dLeft)) : fmtKm(tts.D));
   renderDev(r);
   if (document.activeElement !== vimpEl){ const cv = Engine.curV(st); const want = cv ? fmtV(cv) : ''; if (vimpEl.value !== want) vimpEl.value = want; }
-  vimpEl.readOnly = !!st.tt;
+  vimpEl.readOnly = !!a;
   const bb = $('backBtn'); bb.classList.toggle('active', !!(r && r.back)); bb.textContent = (r && r.back) ? 'BACK on' : 'BACK';
-  $('modeBtn').textContent = st.tt ? 'TIME STAGE' : 'Deviation: ' + (st.mode === 'SEGMENT' ? 'SEGMENT' : 'STAGE');
+  $('modeBtn').textContent = a ? 'TIME STAGE' : 'Deviation: ' + (st.mode === 'SEGMENT' ? 'SEGMENT' : 'STAGE');
   $('kBtn').textContent = 'k = ' + st.k.toFixed(4); $('kBtn').classList.toggle('soon', st.running);
   for (const id of ['backBtn','m10Btn','p10Btn']) $(id).classList.toggle('soon', !st.running);
   if ($('panel').classList.contains('open')) renderPanel(t);
@@ -1172,8 +1222,7 @@ $('resetBtn').onclick = async () => {
   if (confirm('RESET: set the stage back to zero?')){
     const t = App.nowT(); if (t !== null) Log.event('RESET', t);
     await Log.end();
-    const old = S.stage; S.stage = Engine.create(old.k, old.tt ? null : Engine.curV(old));   // after RESET: speed stage, deviation on SEGMENT
-    if (old.tt) S.stage.vimp0 = S.set.vimp;
+    const old = S.stage; S.stage = Engine.create(old.k, Engine.speedAfter(old));   // after RESET: speed stage, deviation on SEGMENT
     S.cd = {}; store.del('tsd-stage'); App.toast('Stage reset'); App.log('RESET');
   }
 };
@@ -1191,7 +1240,7 @@ function corr(mm){
 $('m10Btn').onclick = () => corr(-10000);
 $('p10Btn').onclick = () => corr(10000);
 $('modeBtn').onclick = () => {
-  if (S.stage.tt){ App.toast('Time stage: change it in ☰ → Stage'); return; }
+  if (Engine.activeTT(S.stage)){ App.toast('Time stage: deviation on the time stage; MARK ends it'); return; }
   S.stage.mode = S.stage.mode === 'SEGMENT' ? 'PROBA' : 'SEGMENT'; saveStage();
 };
 function setK(v){
@@ -1211,14 +1260,14 @@ function setVimp(v, exact){
   const t = App.nowT(); if (S.stage.running && t !== null) Log.event('VIMP', t, { note:fmtV(r) });
 }
 function applyVimp(){
-  if (S.stage.tt) return;
+  if (Engine.activeTT(S.stage)) return;
   const v = num(vimpEl.value);
   if (v !== null && v >= 1 && v <= 200){ setVimp(v, false); vimpEl.value = fmtV(Engine.curV(S.stage)); }
   else { const c = Engine.curV(S.stage); vimpEl.value = c ? fmtV(c) : ''; }
 }
 vimpEl.addEventListener('change', applyVimp);
 vimpEl.addEventListener('keydown', e => { if (e.key === 'Enter') vimpEl.blur(); });
-vimpEl.addEventListener('focus', () => { if (S.stage.tt){ vimpEl.blur(); App.toast('Time stage: V_imp comes from distance and time (☰ → Stage)'); return; } setTimeout(() => vimpEl.select(), 0); });
+vimpEl.addEventListener('focus', () => { if (Engine.activeTT(S.stage)){ vimpEl.blur(); App.toast('Time stage: V_imp comes from distance and time; MARK ends it'); return; } setTimeout(() => vimpEl.select(), 0); });
 function openNum(title, value, cb){
   $('numTitle').textContent = title; const inp = $('numInput'); inp.value = value;
   $('numDlg').classList.add('open'); setTimeout(() => { inp.focus(); inp.select(); }, 50);
@@ -1265,22 +1314,21 @@ $('speedStageBtn').onclick = () => {
   if (!x.V){ App.toast('Enter the average speed, or distance and time'); return; }
   if (!(x.V >= 1 && x.V <= 200)){ App.toast('Average speed out of range'); return; }
   const st = S.stage;
-  if (st.tt){ if (st.running && st.segs.length > 1){ App.toast('RESET first'); return; } st.tt = null; Log.event('SPEED_STAGE', App.nowT() ?? Date.now()); }
-  setVimp(x.V, true); App.toast('Speed stage · V_imp ' + fmtV(x.V)); $('panel').classList.remove('open');
+  if (Engine.activeTT(st)){ App.toast('Time stage running: MARK ends it, then set the speed'); return; }
+  if (st.arm){ st.arm = null; const t = App.nowT(); if (st.running && t !== null) Log.event('TIME_STAGE_CANCEL', t); App.log('armed time stage cancelled'); }
+  setVimp(x.V, true); saveStage(); App.toast('Speed stage · V_imp ' + fmtV(x.V)); $('panel').classList.remove('open');
 };
 $('timeStageBtn').onclick = () => {
   const x = calcValues();
   if (!(x.D && x.T)){ App.toast('Enter distance and time (or one of them and the average speed)'); return; }
   const st = S.stage;
-  if (st.running && st.segs.length > 1){ App.toast('RESET first: the stage has segments'); return; }
   const D = x.D || x.V * (x.T / 3.6e6), T = x.T || x.D / x.V * 3.6e6;
-  st.tt = { D: Math.round(D * 1e6), T: Math.round(T) };
-  const v = Engine.ttSpeed(st.tt);
-  st.vimp0 = v; if (st.running) st.segs[0].v = v;
-  S.cd.tt = undefined; saveStage();
-  const t = App.nowT(); if (st.running && t !== null) Log.event('TIME_STAGE', t, { note:(D).toFixed(3) + ' km / ' + fmtDur(T) });
-  App.log('time stage ' + D.toFixed(3) + ' km in ' + fmtDur(T) + ' (' + v.toFixed(3) + ' km/h)');
-  App.toast('Time stage · ' + D.toFixed(3) + ' km in ' + fmtDur(T).slice(0, -2)); $('panel').classList.remove('open');
+  st.arm = { D: Math.round(D * 1e6), T: Math.round(T) };      // armed: the next START / MARK (or the start time) starts it
+  const v = Engine.ttSpeed(st.arm); saveStage();
+  const t = App.nowT(); if (st.running && t !== null) Log.event('TIME_STAGE', t, { note:'armed · ' + ttTxt(st.arm) });
+  App.log('time stage armed ' + D.toFixed(3) + ' km in ' + fmtDur(T) + ' (' + v.toFixed(3) + ' km/h)');
+  const how = !st.running ? 'START starts it' : Engine.activeTT(st) ? 'MARK restarts it' : 'MARK starts it';
+  App.toast('Time stage ' + D.toFixed(3) + ' km in ' + fmtDur(T).slice(0, -2) + ' · ' + how); $('panel').classList.remove('open');
 };
 
 // start time
@@ -1382,6 +1430,9 @@ if (navigator.storage && navigator.storage.persist) navigator.storage.persist().
 if (restoreStage()){ App.toast('Stage resumed: pick the source (☰ → Source)'); App.log('stage resumed after the app restarted'); }
 setInterval(tick, 50);
 render();
+(() => { const h = location.hostname, seg = location.pathname.split('/').filter(Boolean)[0];
+  if (h.endsWith('.github.io') && seg){ const u = 'https://github.com/' + h.split('.')[0] + '/' + seg;
+    $('srcLink').innerHTML = 'Source code: <a href="' + u + '" target="_blank" rel="noopener">' + u.replace('https://', '') + '</a>'; } })();
 window.TSD = { S, App, Engine, PhoneGPS, PhoneSource, SimSource, Log, DB, Sound, decodeData, encodeData, decodeEvent, encodeEvent, encodeCmd, saveStage, restoreStage, hav, parseDuration, parseClock, countdown };
 </script>
 </body>
