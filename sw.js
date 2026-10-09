@@ -1,6 +1,6 @@
 // Funcționare fără internet: fișierele aplicației se salvează pe telefon la prima deschidere.
 // La fiecare versiune nouă se schimbă CACHE, iar versiunea veche se șterge.
-const CACHE = 'tsd-0.6.2';
+const CACHE = 'tsd-0.6.3';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
